@@ -87,7 +87,7 @@ export default function PayFlow({ kind, placed, method, mode, onRetry }: { kind:
             ))}
           </>
         ) : mode === "delivery" ? (
-          <Body>Merci ! Nous vous contactons pour la livraison de votre CD.</Body>
+          <Body>Paiement reçu, merci ! Nous vous contactons pour la livraison de votre CD.</Body>
         ) : (
           <>
             <Body>Votre album est prêt. Un e-mail avec votre code d'accès a aussi été envoyé à {st.email}.</Body>

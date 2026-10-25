@@ -19,6 +19,7 @@ export default function Album({ route, navigation }: { route: { params: { id: st
   const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [phone, setPhone] = useState("");
   const [address, setAddress] = useState(""); const [city, setCity] = useState("");
   const [method, setMethod] = useState<PayMethod>("orange_money");
+  const [payNow, setPayNow] = useState(true);
   const [busy, setBusy] = useState(false);
   const [placed, setPlaced] = useState<Placed | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
@@ -58,7 +59,7 @@ export default function Album({ route, navigation }: { route: { params: { id: st
     setBusy(true);
     try {
       player.current?.pause(); setPlaying(null);
-      setPlaced(await placeAlbumOrder({ articleId: sale.item.id, mode, quantity: q, name: name.trim(), email: email.trim(), phone: phone.trim() || undefined, paymentMethod: mode === "digital" ? method : undefined, address: mode === "delivery" ? address.trim() : undefined, city: mode === "delivery" ? city.trim() : undefined }));
+      setPlaced(await placeAlbumOrder({ articleId: sale.item.id, mode, quantity: q, name: name.trim(), email: email.trim(), phone: phone.trim() || undefined, paymentMethod: mode === "digital" || payNow ? method : undefined, address: mode === "delivery" ? address.trim() : undefined, city: mode === "delivery" ? city.trim() : undefined }));
     } catch (e) { setErr(e instanceof Error ? e.message : "Erreur"); }
     setBusy(false);
   };
@@ -124,7 +125,7 @@ export default function Album({ route, navigation }: { route: { params: { id: st
                   <Field label="Nom complet" value={name} onChange={setName} />
                   <Field label="Adresse e-mail" value={email} onChange={setEmail} keyboard="email-address" />
                   <Field label="Téléphone" value={phone} onChange={setPhone} keyboard="phone-pad" />
-                  {mode === "delivery" ? (<><Field label="Adresse de livraison" value={address} onChange={setAddress} /><Field label="Ville" value={city} onChange={setCity} /><Body style={{ fontSize: 12, color: c.muted }}>Paiement à la livraison.</Body></>) : <PayPicker value={method} onChange={setMethod} />}
+                  {mode === "delivery" ? (<><Field label="Adresse de livraison" value={address} onChange={setAddress} /><Field label="Ville" value={city} onChange={setCity} /><Format on={payNow} onPress={() => setPayNow(true)} title="Payer maintenant" sub="En ligne, puis livraison" price="" /><Format on={!payNow} onPress={() => setPayNow(false)} title="Payer à la livraison" sub="En espèces à la remise" price="" />{payNow ? <PayPicker value={method} onChange={setMethod} /> : null}</>) : <PayPicker value={method} onChange={setMethod} />}
                 </>
               ) : null}
             </>
@@ -138,7 +139,7 @@ export default function Album({ route, navigation }: { route: { params: { id: st
             <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted }}>{mode === "digital" ? "Album numérique" : `CD × ${q}`}</Text>
             <Text style={{ fontFamily: serif, fontSize: 22, color: c.text }}>{money(unit * q, cur)}</Text>
           </View>
-          <Button label={busy ? "Patientez…" : pre ? "Précommander" : mode === "delivery" ? "Commander" : "Acheter"} onPress={buy} disabled={busy} style={{ flex: 1, borderRadius: 12 }} />
+          <Button label={busy ? "Patientez…" : pre ? "Précommander" : mode === "delivery" && !payNow ? "Commander" : "Acheter"} onPress={buy} disabled={busy} style={{ flex: 1, borderRadius: 12 }} />
         </View>
       ) : null}
     </View>
