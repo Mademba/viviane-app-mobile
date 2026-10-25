@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Article, EventItem } from "../api";
 import { useContent } from "../content";
 import { go } from "../nav";
-import { Banner, Body, Button, Cover, TopBar, fmtDate, money } from "../ui";
+import { Banner, Body, Button, Cover, FitImage, TopBar, fmtDate, money } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export const openArticle = (a: Article) => (a.is_album ? go("Album", { id: a.album_slug ?? a.id }) : go("Article", { article: a }));
@@ -37,7 +37,7 @@ export function News() {
       {data && !list.length ? <Body>Aucune actualité pour le moment.</Body> : null}
       {top ? (
         <Pressable accessibilityRole="button" onPress={() => openArticle(top)} style={{ borderRadius: 18, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-          <View style={{ height: 260 }}><Cover uri={top.cover_url} size="fill" radius={0} /></View>
+          <FitImage uri={top.cover_url} ratio={1.6} />
           <View style={{ padding: 18, gap: 10 }}>
             <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 2, color: c.gold, textTransform: "uppercase" }}>{fmtDate(top.published_at, true)}</Text>
             <Text style={{ fontFamily: serif, fontSize: 28, lineHeight: 31, color: c.text }}>{top.title}</Text>
@@ -109,8 +109,8 @@ export function Agenda() {
         const hour = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
         return (
           <View style={{ borderRadius: 22, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-            <View style={{ height: 300 }}>
-              <Cover uri={featured.poster_url} size="fill" radius={0} />
+            <View>
+              <FitImage uri={featured.poster_url} ratio={0.85} />
               <Text style={{ position: "absolute", left: 14, top: 14, backgroundColor: c.rose, color: "#fff", fontFamily: sansBold, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: "hidden" }}>À l'affiche</Text>
             </View>
             <View style={{ padding: 20, gap: 14 }}>

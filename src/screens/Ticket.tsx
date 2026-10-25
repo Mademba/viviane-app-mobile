@@ -59,8 +59,8 @@ export default function Ticket({ route, navigation }: { route: { params: { id: s
               <>
                 <View style={{ borderRadius: 14, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
                   {types.map((t, i) => {
-                    const max = Math.min(5, t.remaining ?? 5);
                     const q = qty[t.id] ?? 0;
+                    const max = Math.max(0, Math.min(5 - (count - q), t.remaining ?? 5)); // 5 au total, toutes catégories confondues
                     return (
                       <View key={t.id} style={{ flexDirection: "row", alignItems: "center", padding: 12, borderTopWidth: i ? 1 : 0, borderTopColor: c.line }}>
                         <View style={{ flex: 1 }}>
@@ -75,7 +75,7 @@ export default function Ticket({ route, navigation }: { route: { params: { id: s
                     );
                   })}
                 </View>
-                <Body style={{ fontSize: 12, color: c.muted }}>5 tickets maximum par personne.</Body>
+                <Body style={{ fontSize: 12, color: c.muted }}>5 tickets maximum par personne, toutes catégories confondues (Standard, VIP…). Compteur : {count} / 5.</Body>
                 <Field label="Nom complet" value={name} onChange={setName} />
                 <Field label="Adresse e-mail" value={email} onChange={setEmail} keyboard="email-address" />
                 <Field label="Téléphone" value={phone} onChange={setPhone} keyboard="phone-pad" />

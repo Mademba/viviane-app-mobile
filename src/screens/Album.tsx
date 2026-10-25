@@ -2,11 +2,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
 import { createAudioPlayer, type AudioPlayer } from "expo-audio";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchAlbumSale, placeAlbumOrder, type AlbumSale, type PayMethod, type Placed } from "../api";
 import PayFlow from "./PayFlow";
-import { BackBar, Banner, Body, Button, Cover, Field, PayPicker, fmtDate, money, validEmail } from "../ui";
+import { BackBar, Banner, Body, Button, Field, NaturalImage, PayPicker, fmtDate, money, validEmail } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export default function Album({ route, navigation }: { route: { params: { id: string } }; navigation: { goBack: () => void } }) {
@@ -67,20 +66,21 @@ export default function Album({ route, navigation }: { route: { params: { id: st
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 150 }} keyboardShouldPersistTaps="handled">
-        <View style={{ height: 340 }}>
-          <Cover uri={a?.cover_url ?? sale?.item.poster_url} size="100%" radius={0} />
-          <LinearGradient colors={["rgba(25,1,4,.25)", c.bg]} locations={[0.3, 1]} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
+        <View>
+          <NaturalImage uri={a?.cover_url ?? sale?.item.poster_url} min={0.9} max={1.2} />
           <View style={{ position: "absolute", left: 20, right: 20, top: insets.top + 8 }}><BackBar onBack={navigation.goBack} label="Album" /></View>
-          {sale ? (
-            <View style={{ position: "absolute", left: 20, right: 20, bottom: 14 }}>
-              {pre ? <Text style={{ alignSelf: "flex-start", backgroundColor: c.rose, color: "#fff", fontFamily: sansBold, fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase", paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, overflow: "hidden" }}>Précommande</Text> : null}
-              <Text style={{ fontFamily: serif, fontSize: 38, color: c.text, lineHeight: 40, marginTop: 8 }}>{sale.item.title}</Text>
-              <Text style={{ fontFamily: sans, fontSize: 14, color: c.soft, marginTop: 4 }}>Viviane Chidid · {pre ? "sortie le " : ""}{fmtDate(sale.item.starts_at, true)}</Text>
-            </View>
-          ) : null}
         </View>
+        {sale ? (
+          <View style={{ paddingHorizontal: 22, paddingTop: 22, paddingBottom: 6 }}>
+            {pre ? <Text style={{ alignSelf: "flex-start", backgroundColor: c.rose, color: "#fff", fontFamily: sansBold, fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12, overflow: "hidden", marginBottom: 10 }}>Précommande</Text> : null}
+            <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2.4, textTransform: "uppercase", color: c.gold }}>Viviane Chidid</Text>
+            <Text style={{ fontFamily: serif, fontSize: 40, color: c.text, lineHeight: 42, marginTop: 8 }}>{sale.item.title}</Text>
+            <Text style={{ fontFamily: sans, fontSize: 15, color: c.soft, marginTop: 8 }}>{pre ? "Sortie le " : "Sorti le "}{fmtDate(sale.item.starts_at, true)}</Text>
+            <View style={{ height: 3, width: 48, borderRadius: 2, backgroundColor: c.rose, marginTop: 18 }} />
+          </View>
+        ) : null}
 
-        <View style={{ paddingHorizontal: 20, gap: 14 }}>
+        <View style={{ paddingHorizontal: 22, paddingTop: 12, gap: 18 }}>
           {!sale && !err ? <ActivityIndicator color={c.rose} /> : null}
           {err && !placed ? <Banner text={err} /> : null}
           {intro ? <Body>{intro}</Body> : null}

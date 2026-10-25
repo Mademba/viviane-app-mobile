@@ -10,7 +10,7 @@ import { openArticle, openTickets } from "./Feed";
 import type { Article } from "../api";
 import { useContent } from "../content";
 import { usePlayer } from "../player";
-import { Body, Button, Cover, Eyebrow, ThemeButton, fmtDate, fmtTime, money, openLink } from "../ui";
+import { Body, Button, Cover, FitImage, Eyebrow, ThemeButton, fmtDate, fmtTime, money, openLink } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 function BannerVideo({ uri }: { uri: string }) {
@@ -21,7 +21,7 @@ function BannerVideo({ uri }: { uri: string }) {
 function NewsCarousel({ items }: { items: Article[] }) {
   const { c } = useTheme();
   const { width } = useWindowDimensions();
-  const cardW = width - 56;
+  const cardW = width - 32;
   const gap = 14;
   const ref = useRef<{ scrollTo: (o: { x: number; animated?: boolean }) => void } | null>(null);
   const idx = useRef(0);
@@ -41,13 +41,13 @@ function NewsCarousel({ items }: { items: Article[] }) {
   return (
     <View style={{ marginTop: 14 }}>
       <ScrollView ref={ref as never} horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardW + gap} decelerationRate="fast" style={{ marginHorizontal: -20 }}
-        contentContainerStyle={{ paddingHorizontal: 20, gap }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap }}
         onScrollBeginDrag={() => { pause.current = Date.now() + 9000; }}
         onMomentumScrollEnd={(e) => { const i = Math.round(e.nativeEvent.contentOffset.x / (cardW + gap)); idx.current = i; setCur(i); }}>
         {items.map((a) => (
           <Pressable key={a.id} accessibilityRole="button" onPress={() => openArticle(a)} style={{ width: cardW, borderRadius: 20, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-            <View style={{ height: 230 }}><Cover uri={a.cover_url} size="fill" radius={0} /></View>
-            <View style={{ padding: 16, gap: 6, minHeight: 112 }}>
+            <FitImage uri={a.cover_url} ratio={1.8} />
+            <View style={{ padding: 16, gap: 6, minHeight: 104 }}>
               <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>{fmtDate(a.published_at)}</Text>
               <Text numberOfLines={2} style={{ fontFamily: serif, fontSize: 23, lineHeight: 26, color: c.text }}>{a.title}</Text>
               {a.excerpt ? <Text numberOfLines={2} style={{ fontFamily: sans, fontSize: 14, lineHeight: 20, color: c.muted }}>{a.excerpt}</Text> : null}

@@ -1,12 +1,18 @@
-import React from "react";
-import { Image, Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import React, { useState } from "react";
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { useVideoPlayer, VideoView } from "expo-video";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Article as A } from "../api";
 import { go } from "../nav";
-import { BackBar, Body, Button, Cover, fmtDate, openLink } from "../ui";
+import { BackBar, Button, Expandable, FitImage, Lightbox, NaturalImage, fmtDate, openLink } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
+
+function InlineVideo({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri, (p) => { p.loop = false; });
+  return <VideoView player={player} nativeControls fullscreenOptions={{ enable: true }} contentFit="contain" style={{ width: "100%", aspectRatio: 16 / 9, borderRadius: 14, backgroundColor: "#000" }} />;
+}
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const { c } = useTheme();
@@ -26,18 +32,18 @@ export default function Article({ route, navigation }: { route: { params: { arti
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const a = route.params.article;
-  const photos = (a.media ?? []).filter((m) => m.type === "photo" && m.url !== a.cover_url);
+  const photos = (a.media ?? []).filter((m) => m.type === "photo" && m.url !== a.cover_url).map((m) => m.url);
+  const files = (a.media ?? []).filter((m) => m.type === "video").map((m) => m.url);
   const videos = a.youtube_urls ?? [];
-  const heroH = Math.round(width * 0.8);
-  // Le contenu est découpé en paragraphes pour une lecture aérée
-  const paras = (a.content ?? "").split(/\n{2,}|\r\n\r\n/).map((t) => t.trim()).filter(Boolean);
+  const [view, setView] = useState<number | null>(null);
+  const text = (a.content ?? "").replace(/\r\n/g, "\n").trim();
+  const gw = width - 44;
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingBottom: 48 }}>
-      {/* 1. Photo de couverture, seule, sans texte dessus */}
-      <View style={{ width: "100%", height: heroH + insets.top * 0.4, backgroundColor: c.card }}>
-        <Cover uri={a.cover_url} size="fill" radius={0} />
-        <LinearGradient colors={["rgba(0,0,0,.45)", "rgba(0,0,0,0)"]} style={{ position: "absolute", left: 0, right: 0, top: 0, height: insets.top + 80 }} pointerEvents="none" />
+      {/* 1. Photo de couverture entière, sans texte dessus */}
+      <View>
+        <NaturalImage uri={a.cover_url} min={0.9} max={1.5} />
         <View style={{ position: "absolute", left: 20, right: 20, top: insets.top + 8 }}><BackBar onBack={navigation.goBack} label="Actualités" /></View>
       </View>
 
@@ -57,37 +63,38 @@ export default function Article({ route, navigation }: { route: { params: { arti
           </View>
         ) : null}
 
-        {/* 4. Texte */}
-        {paras.length ? (
-          <View style={{ marginTop: 26, gap: 16 }}>
-            {paras.map((t, i) => <Body key={i} style={{ fontSize: 16.5, lineHeight: 27 }}>{t}</Body>)}
-          </View>
-        ) : null}
+        {/* 4. Texte (début + « Lire la suite ») */}
+        {text ? <View style={{ marginTop: 26 }}><Expandable text={text} /></View> : null}
 
         {/* 5. Vidéos */}
-        {videos.length ? (
+        {files.length || videos.length ? (
           <Section title="Vidéos">
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: 12 }}>
+              {files.map((u) => <InlineVideo key={u} uri={u} />)}
               {videos.map((u, i) => (
                 <Pressable key={u} accessibilityRole="button" onPress={() => void openLink(u)} style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: c.line, backgroundColor: c.card }}>
                   <Ionicons name="logo-youtube" size={28} color="#ff0033" />
                   <Text style={{ flex: 1, fontFamily: sansBold, color: c.text }}>{videos.length > 1 ? `Regarder la vidéo ${i + 1}` : "Regarder la vidéo"}</Text>
-                  <Ionicons name="open-outline" size={18} color={c.muted} />
+                  <Ionicons name="play-circle-outline" size={22} color={c.muted} />
                 </Pressable>
               ))}
             </View>
           </Section>
         ) : null}
 
-        {/* 6. Galerie photos */}
+        {/* 6. Galerie : on touche une photo pour la voir en grand */}
         {photos.length ? (
-          <Section title="Galerie">
-            <View style={{ gap: 12 }}>
-              {photos.map((m) => <Image key={m.url} source={{ uri: m.url }} style={{ width: "100%", aspectRatio: 4 / 3, borderRadius: 14, backgroundColor: c.card }} resizeMode="cover" />)}
-            </View>
+          <Section title={`Photos (${photos.length})`}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={gw * 0.86 + 12} decelerationRate="fast" style={{ marginHorizontal: -22 }} contentContainerStyle={{ paddingHorizontal: 22, gap: 12 }}>
+              {photos.map((u, k) => (
+                <View key={u} style={{ width: gw * 0.86 }}><FitImage uri={u} ratio={4 / 3} radius={14} onPress={() => setView(k)} /></View>
+              ))}
+            </ScrollView>
+            <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 8 }}>Touchez une photo pour l'agrandir ; glissez pour voir les autres.</Text>
           </Section>
         ) : null}
       </View>
+      <Lightbox photos={photos} start={view} onClose={() => setView(null)} />
     </ScrollView>
   );
 }

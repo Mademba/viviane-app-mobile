@@ -2,7 +2,9 @@ import { PayLogo } from "../ui";
 import QrCode from "../QrCode";
 import { withBrowser } from "../session";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { Linking, Pressable, Text, View } from "react-native";
+import * as Clipboard from "expo-clipboard";
+import { API_URL } from "../config";
 import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import { albumStatus, redeem, simulateAlbum, simulateTicket, ticketStatus, type PayMethod, type Placed } from "../api";
@@ -11,7 +13,48 @@ import { Banner, Body, Button, openLink } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 type Kind = "ticket" | "album";
-type State = { status: string; email?: string; accessCode?: string | null; tickets?: { code: string; type_name: string }[]; event?: { title: string; venue: string; city: string; starts_at: string }; title?: string };
+type State = { status: string; email?: string; accessCode?: string | null; tickets?: { code: string; type_name: string; seat_index?: number }[]; event?: { title: string; venue: string; city: string; starts_at: string }; title?: string };
+
+const PAPER = "#fffaf5", INK = "#2a1620", BASE = "#d2456e", GOLD = "#b88d29";
+const pdfUrl = (orderId: string, n?: number) => `${API_URL}/api/public/ticket-pdf/${orderId}${n === undefined ? "" : `?n=${n}`}`;
+const downloadPdf = (url: string) => withBrowser(() => Linking.openURL(url)).catch(() => {});
+
+/** Billet : même présentation que sur le site (bandeau, infos, talon avec QR code). */
+function TicketCard({ t, i, total, st, orderId }: { t: { code: string; type_name: string; seat_index?: number }; i: number; total: number; st: State; orderId: string }) {
+  const ev = st.event;
+  const d = ev ? new Date(ev.starts_at) : null;
+  const line = (label: string, v: string) => (
+    <View style={{ marginTop: 8 }}>
+      <Text style={{ fontFamily: sansBold, fontSize: 9.5, letterSpacing: 2, color: GOLD }}>{label}</Text>
+      <Text style={{ fontFamily: sansBold, fontSize: 14.5, color: INK, marginTop: 2 }}>{v}</Text>
+    </View>
+  );
+  return (
+    <View style={{ borderRadius: 16, overflow: "hidden", backgroundColor: PAPER, borderTopWidth: 6, borderTopColor: BASE }}>
+      <View style={{ padding: 18 }}>
+        <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 3, color: GOLD }}>VIVIANE CHIDID · BILLET</Text>
+        <Text style={{ fontFamily: serif, fontSize: 28, lineHeight: 30, color: BASE, marginTop: 6 }}>{ev?.title ?? st.title ?? "Événement"}</Text>
+        {d ? line("DATE", d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) + " · " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })) : null}
+        {ev ? line("LIEU", `${ev.venue}, ${ev.city}`) : null}
+        {line("TARIF", t.type_name)}
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View style={{ width: 14, height: 28, borderTopRightRadius: 14, borderBottomRightRadius: 14, backgroundColor: "#190104" }} />
+        <View style={{ flex: 1, borderTopWidth: 1.5, borderStyle: "dashed", borderColor: "#d9c3b3" }} />
+        <View style={{ width: 14, height: 28, borderTopLeftRadius: 14, borderBottomLeftRadius: 14, backgroundColor: "#190104" }} />
+      </View>
+      <View style={{ alignItems: "center", padding: 18, gap: 8 }}>
+        <QrCode value={t.code} size={176} />
+        <Text selectable style={{ fontFamily: sansBold, fontSize: 15, letterSpacing: 2.5, color: INK }}>{t.code.slice(0, 12).toUpperCase()}</Text>
+        <Text style={{ fontFamily: sans, fontSize: 12, color: "#6b5560" }}>Billet {i + 1} / {total} · valable une seule fois</Text>
+        <Pressable accessibilityRole="button" onPress={() => void downloadPdf(pdfUrl(orderId, t.seat_index ?? i))} style={{ marginTop: 6, height: 44, paddingHorizontal: 20, borderRadius: 22, borderWidth: 1.5, borderColor: BASE, flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Ionicons name="download-outline" size={18} color={BASE} />
+          <Text style={{ fontFamily: sansBold, fontSize: 13, color: BASE }}>Ce billet en PDF</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}
 
 /** Après la commande : ouvre la page de paiement PayDunya, surveille le paiement, puis confirme dans l'application. */
 export default function PayFlow({ kind, placed, method, mode, onRetry }: { kind: Kind; placed: Placed; method: PayMethod; mode?: "digital" | "delivery"; onRetry: () => void }) {
@@ -20,6 +63,7 @@ export default function PayFlow({ kind, placed, method, mode, onRetry }: { kind:
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [added, setAdded] = useState<boolean | null>(null);
+  const [copied, setCopied] = useState(false);
   const opened = useRef(false);
   const poll = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -81,21 +125,24 @@ export default function PayFlow({ kind, placed, method, mode, onRetry }: { kind:
         <Text style={{ fontFamily: serif, fontSize: 26, color: c.text }}>Paiement confirmé</Text>
         {kind === "ticket" ? (
           <>
-            <Body>Vos tickets ont été envoyés à {st.email}. Présentez le code de chaque ticket à l'entrée.</Body>
-            {st.tickets?.map((t) => (
-              <View key={t.code} style={{ borderWidth: 1, borderColor: c.line, borderRadius: 10, padding: 12 }}>
-                <Text style={{ fontFamily: sansBold, color: c.gold, fontSize: 12, letterSpacing: 1.5, textTransform: "uppercase" }}>{t.type_name}</Text>
-                <Text selectable style={{ fontFamily: sansBold, color: c.text, fontSize: 18, letterSpacing: 2, marginTop: 4 }}>{t.code}</Text>
-                <View style={{ alignItems: "center", marginTop: 12 }}><QrCode value={t.code} /></View>
-              </View>
-            ))}
+            <Body>Vos billets (PDF) ont aussi été envoyés par e-mail à {st.email}. Présentez le QR code à l'entrée.</Body>
+            <Button label="Télécharger tous les billets (PDF)" onPress={() => void downloadPdf(pdfUrl(placed.orderId))} />
+            <View style={{ gap: 14, marginTop: 4 }}>
+              {st.tickets?.map((t, i) => <TicketCard key={t.code} t={t} i={i} total={st.tickets!.length} st={st} orderId={placed.orderId} />)}
+            </View>
           </>
         ) : mode === "delivery" ? (
           <Body>Paiement reçu, merci ! Nous vous contactons pour la livraison de votre CD.</Body>
         ) : (
           <>
             <Body>Votre album est prêt. Un e-mail avec votre code d'accès a aussi été envoyé à {st.email}.</Body>
-            {st.accessCode ? <Text selectable style={{ fontFamily: sansBold, color: c.gold, fontSize: 22, letterSpacing: 3 }}>{st.accessCode}</Text> : null}
+            {st.accessCode ? (
+              <View style={{ gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.gold, alignItems: "center" }}>
+                <Text style={{ fontFamily: sans, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: c.muted }}>Votre code d'accès</Text>
+                <Text selectable style={{ fontFamily: sansBold, color: c.gold, fontSize: 24, letterSpacing: 3 }}>{st.accessCode}</Text>
+                <Button ghost label={copied ? "Code copié ✓" : "Copier le code"} onPress={() => { void Clipboard.setStringAsync(st.accessCode!).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); }).catch(() => {}); }} style={{ minHeight: 44, alignSelf: "stretch" }} />
+              </View>
+            ) : null}
             {added === true ? <Banner kind="info" text="L'album a été ajouté à « Ma musique »." /> : null}
             {added === false && !st.accessCode ? <Banner text="Entrez le code reçu par e-mail dans « Ma musique »." kind="info" /> : null}
             <Button label="Écouter dans Ma musique" onPress={() => goTab("Ma musique")} />

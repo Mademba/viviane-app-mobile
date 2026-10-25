@@ -123,7 +123,7 @@ export const fetchEventSale = async (id: string): Promise<EventSale> => {
 export const placeTicketOrder = (b: { eventId: string; items: { ticketTypeId: string; quantity: number }[]; name: string; email: string; phone?: string; paymentMethod: PayMethod }) =>
   call<Placed>("/api/app/ticket-order", { method: "POST", body: JSON.stringify(b) }, false);
 export const ticketStatus = (id: string) =>
-  call<{ status: string; email: string; total: number; currency: string; tickets: { code: string; type_name: string }[]; event: { title: string; venue: string; city: string; starts_at: string } }>(`/api/app/ticket-order/${id}`, {}, false);
+  call<{ status: string; email: string; total: number; currency: string; tickets: { code: string; type_name: string; seat_index?: number }[]; event: { title: string; venue: string; city: string; starts_at: string } }>(`/api/app/ticket-order/${id}`, {}, false);
 export const simulateTicket = (orderId: string, method: PayMethod, outcome: "success" | "failure") =>
   call<{ paid: boolean }>("/api/app/ticket-simulate", { method: "POST", body: JSON.stringify({ orderId, method, outcome }) }, false);
 

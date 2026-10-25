@@ -1,6 +1,6 @@
 import { withBrowser } from "./session";
-import React from "react";
-import { Image, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { FlatList, Image, Modal, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { sans, sansBold, serif, useTheme } from "./theme";
 
@@ -157,3 +157,79 @@ export const validEmail = (e: string) => /^\S+@\S+\.\S+$/.test(e.trim());
 
 export const openLink = (url: string) => (/^https?:\/\//i.test(url) ? withBrowser(() => WebBrowser.openBrowserAsync(url, { toolbarColor: "#190104", controlsColor: "#e3ad4b" })) : Linking.openURL(url).catch(() => {}));
 export { ActivityIndicator };
+
+
+// ───────── Photos : jamais coupées ─────────
+/** Photo entière dans un cadre de ratio fixe : fond flouté + image « contain » (rien n'est rogné). */
+export function FitImage({ uri, ratio = 1.5, radius = 0, onPress, label }: { uri?: string | null; ratio?: number; radius?: number; onPress?: () => void; label?: string }) {
+  const { c } = useTheme();
+  const body = (
+    <View style={{ width: "100%", aspectRatio: ratio, borderRadius: radius, overflow: "hidden", backgroundColor: c.card }}>
+      {uri ? (
+        <>
+          <Image source={{ uri }} blurRadius={28} style={StyleSheet.absoluteFill} resizeMode="cover" />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(0,0,0,.25)" }]} />
+          <Image source={{ uri }} style={StyleSheet.absoluteFill} resizeMode="contain" accessibilityLabel={label} />
+        </>
+      ) : (
+        <LinearGradient colors={[c.rose, "#5b0020", c.card]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      )}
+    </View>
+  );
+  return onPress ? <Pressable accessibilityRole="imagebutton" accessibilityLabel={label ?? "Agrandir la photo"} onPress={onPress}>{body}</Pressable> : body;
+}
+
+/** Photo pleine largeur à son format naturel (bornée), sans rognage. */
+export function NaturalImage({ uri, min = 0.8, max = 1.8, radius = 0 }: { uri?: string | null; min?: number; max?: number; radius?: number }) {
+  const [ratio, setRatio] = useState(1.5);
+  useEffect(() => {
+    if (!uri) return;
+    Image.getSize(uri, (w, h) => { if (w && h) setRatio(Math.min(max, Math.max(min, w / h))); }, () => {});
+  }, [uri, min, max]);
+  return <FitImage uri={uri} ratio={ratio} radius={radius} />;
+}
+
+/** Visionneuse plein écran : on glisse d'une photo à l'autre. */
+export function Lightbox({ photos, start, onClose }: { photos: string[]; start: number | null; onClose: () => void }) {
+  const { width, height } = useWindowDimensions();
+  const [i, setI] = useState(0);
+  const ref = useRef<FlatList<string>>(null);
+  useEffect(() => { if (start !== null) setI(start); }, [start]);
+  return (
+    <Modal visible={start !== null} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
+      <View style={{ flex: 1, backgroundColor: "#000" }}>
+        {start !== null ? (
+          <FlatList ref={ref} data={photos} horizontal pagingEnabled showsHorizontalScrollIndicator={false} keyExtractor={(u) => u} initialScrollIndex={start}
+            getItemLayout={(_, k) => ({ length: width, offset: width * k, index: k })}
+            onMomentumScrollEnd={(e) => setI(Math.round(e.nativeEvent.contentOffset.x / width))}
+            renderItem={({ item }) => <View style={{ width, height, justifyContent: "center" }}><Image source={{ uri: item }} style={{ width, height: height * 0.86 }} resizeMode="contain" /></View>} />
+        ) : null}
+        <View style={{ position: "absolute", top: 44, left: 16, right: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+          <Text style={{ fontFamily: sansBold, color: "#fff", fontSize: 14 }}>{photos.length > 1 ? `${i + 1} / ${photos.length}` : ""}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel="Fermer" onPress={onClose} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(255,255,255,.18)", alignItems: "center", justifyContent: "center" }}>
+            <Ionicons name="close" size={24} color="#fff" />
+          </Pressable>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/** Texte tronqué avec « Lire la suite ». */
+export function Expandable({ text, limit = 380 }: { text: string; limit?: number }) {
+  const { c } = useTheme();
+  const [open, setOpen] = useState(false);
+  const long = text.length > limit + 40;
+  const shown = open || !long ? text : text.slice(0, text.lastIndexOf(" ", limit) > 200 ? text.lastIndexOf(" ", limit) : limit).trimEnd() + "…";
+  return (
+    <View style={{ gap: 12 }}>
+      {shown.split(/\n{2,}/).map((t, i) => <Body key={i} style={{ fontSize: 16.5, lineHeight: 27 }}>{t.trim()}</Body>)}
+      {long ? (
+        <Pressable accessibilityRole="button" onPress={() => setOpen((v) => !v)} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
+          <Text style={{ fontFamily: sansBold, fontSize: 15, color: c.pink }}>{open ? "Réduire" : "Lire la suite"}</Text>
+          <Ionicons name={open ? "chevron-up" : "chevron-down"} size={18} color={c.pink} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
+}
