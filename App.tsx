@@ -19,8 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 
 const Tab = createBottomTabNavigator();
 const nav = createNavigationContainerRef();
-// Profil : volontairement sans icône (texte seul).
-const ICON: Record<string, React.ComponentProps<typeof Ionicons>["name"] | undefined> = { Accueil: "home-outline", "Ma musique": "musical-notes-outline", "Actualités": "newspaper-outline", Agenda: "calendar-outline" };
+const ICON: Record<string, React.ComponentProps<typeof Ionicons>["name"] | undefined> = { Accueil: "home-outline", "Ma musique": "musical-notes-outline", "Actualités": "newspaper-outline", Agenda: "calendar-outline", Profil: "person-outline" };
 
 function MiniPlayer({ onOpen }: { onOpen: () => void }) {
   const { c } = useTheme();
