@@ -1,9 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from "expo-audio";
-import { trackSource, type LibAlbum, type Track } from "./api";
+import { ssGet, ssSet, trackSource, type LibAlbum, type Track } from "./api";
 
 type Now = { album: LibAlbum; index: number } | null;
+export type Last = { album: LibAlbum; index: number; position: number; duration: number } | null;
 type PlayerCtx = {
+  last: Last; resume: () => Promise<void>;
   now: Now; playing: boolean; position: number; duration: number; error: string | null;
   play: (album: LibAlbum, index: number) => Promise<void>;
   toggle: () => void; next: () => void; prev: () => void; seek: (s: number) => void;
@@ -19,6 +21,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [last, setLast] = useState<Last>(null);
+  const lastSaved = useRef(0);
+  const pending = useRef<number | null>(null);
+
+  useEffect(() => {
+    ssGet("resume").then((v) => { if (v) try { setLast(JSON.parse(v)); } catch { /* ignoré */ } });
+  }, []);
 
   useEffect(() => {
     setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: true }).catch(() => {});
@@ -37,6 +46,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           setPlaying(s.playing);
           setPosition(s.currentTime);
           setDuration(s.duration);
+          const n = nowRef.current;
+          if (n && s.currentTime > 0 && Math.abs(s.currentTime - lastSaved.current) >= 5) {
+            lastSaved.current = s.currentTime;
+            const snap = { album: n.album, index: n.index, position: s.currentTime, duration: s.duration };
+            setLast(snap);
+            void ssSet("resume", JSON.stringify(snap));
+          }
           if (s.didJustFinish) {
             const n = nowRef.current;
             if (n && n.index + 1 < n.album.tracks.length) void play(n.album, n.index + 1);
@@ -48,12 +64,15 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       nowRef.current = { album, index };
       setNow({ album, index });
       player.current.play();
+      if (pending.current) { const at = pending.current; pending.current = null; setTimeout(() => { void player.current?.seekTo(at); }, 400); }
     } catch {
       setError("Lecture impossible pour le moment.");
     }
   }, []);
 
   const value: PlayerCtx = {
+    last,
+    resume: async () => { if (!last) return; pending.current = last.position; await play(last.album, last.index); },
     now, playing, position, duration, error, play,
     toggle: () => { const p = player.current; if (p) (p.playing ? p.pause() : p.play()); },
     next: () => { if (now && now.index + 1 < now.album.tracks.length) void play(now.album, now.index + 1); },

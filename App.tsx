@@ -13,11 +13,14 @@ import Welcome from "./src/screens/Welcome";
 import Music from "./src/screens/Music";
 import Profile from "./src/screens/Profile";
 import Player from "./src/screens/Player";
-import { Agenda, Home, News } from "./src/screens/Feed";
+import { Agenda, News } from "./src/screens/Feed";
+import Home from "./src/screens/Home";
+import { Ionicons } from "@expo/vector-icons";
 
 const Tab = createBottomTabNavigator();
 const nav = createNavigationContainerRef();
-const ICON: Record<string, string> = { Accueil: "⌂", "Ma musique": "♫", "Actualités": "▤", Agenda: "▦", Profil: "☺" };
+// Profil : volontairement sans icône (texte seul).
+const ICON: Record<string, React.ComponentProps<typeof Ionicons>["name"] | undefined> = { Accueil: "home-outline", "Ma musique": "musical-notes-outline", "Actualités": "newspaper-outline", Agenda: "calendar-outline" };
 
 function MiniPlayer({ onOpen }: { onOpen: () => void }) {
   const { c } = useTheme();
@@ -52,7 +55,7 @@ function Main() {
             tabBarInactiveTintColor: c.muted,
             tabBarStyle: { backgroundColor: c.bar, borderTopColor: c.line, height: 62 + insets.bottom, paddingTop: 6 },
             tabBarLabelStyle: { fontFamily: sansBold, fontSize: 11 },
-            tabBarIcon: ({ color }) => <Text style={{ fontSize: 22, color }}>{ICON[route.name]}</Text>,
+            tabBarIcon: ({ color }) => (ICON[route.name] ? <Ionicons name={ICON[route.name]!} size={24} color={color} /> : null),
           })}
           tabBar={(props) => (
             <View>

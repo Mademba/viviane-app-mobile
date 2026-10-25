@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { API_URL } from "../config";
 import type { Article, EventItem } from "../api";
 import { useContent } from "../content";
-import { useVideoPlayer, VideoView } from "expo-video";
 import { Banner, Body, Button, Cover, Eyebrow, H1, fmtDate } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
@@ -87,59 +86,6 @@ export function Agenda() {
           </View>
         );
       })}
-    </Screen>
-  );
-}
-
-function BannerVideo({ uri }: { uri: string }) {
-  const player = useVideoPlayer(uri, (p) => { p.loop = true; p.muted = true; p.play(); });
-  return <VideoView player={player} nativeControls={false} contentFit="cover" style={{ width: "100%", height: "100%" }} />;
-}
-
-export function Home({ goTo }: { goTo: (tab: string) => void }) {
-  const { c } = useTheme();
-  const { data, busy, load } = useContent();
-  const st = data?.settings;
-  const showBanner = st && st.home_media_type !== "none" && st.home_media_url;
-  const onBanner = () => {
-    if (!st) return;
-    if (st.home_button_target === "url" && st.home_button_url) void open(st.home_button_url.startsWith("/") ? st.home_button_url : `/${st.home_button_url}`);
-    else if (st.home_button_target === "music") goTo("Ma musique");
-    else if (st.home_button_target === "agenda") goTo("Agenda");
-    else if (st.home_button_target === "news") goTo("Actualités");
-  };
-  const next = (data?.events ?? []).find((e) => new Date(e.starts_at).getTime() >= Date.now());
-  const latest = data?.articles?.[0];
-  return (
-    <Screen title="Accueil" refresh={load} busy={busy}>
-      {showBanner ? (
-        <View style={{ borderRadius: 18, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-          <View style={{ aspectRatio: 16 / 10, backgroundColor: c.card }}>
-            {st!.home_media_type === "video" ? <BannerVideo uri={st!.home_media_url!} /> : <Cover uri={st!.home_media_url} size="100%" radius={0} />}
-          </View>
-          {st!.home_title || st!.home_text || (st!.home_button_label && st!.home_button_target !== "none") ? (
-            <View style={{ padding: 16, gap: 8 }}>
-              {st!.home_title ? <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>{st!.home_title}</Text> : null}
-              {st!.home_text ? <Body>{st!.home_text}</Body> : null}
-              {st!.home_button_label && st!.home_button_target !== "none" ? <Button label={st!.home_button_label} onPress={onBanner} /> : null}
-            </View>
-          ) : null}
-        </View>
-      ) : <Body>Bienvenue dans l'univers de Viviane.</Body>}
-      <Button label="Ma musique" onPress={() => goTo("Ma musique")} />
-      {latest ? (
-        <Pressable onPress={() => open(articlePath(latest))} accessibilityRole="button" style={{ borderRadius: 16, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-          <Cover uri={latest.cover_url} size="100%" radius={0} />
-          <View style={{ padding: 14 }}><Eyebrow>À la une</Eyebrow><Text style={{ fontFamily: serif, fontSize: 22, color: c.text, marginTop: 6 }}>{latest.title}</Text></View>
-        </Pressable>
-      ) : null}
-      {next ? (
-        <Pressable onPress={() => goTo("Agenda")} accessibilityRole="button" style={{ borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, padding: 14, gap: 4 }}>
-          <Eyebrow>Prochain événement</Eyebrow>
-          <Text style={{ fontFamily: sansBold, fontSize: 16, color: c.text }}>{next.title}</Text>
-          <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{fmtDate(next.starts_at, true)} · {next.city}</Text>
-        </Pressable>
-      ) : null}
     </Screen>
   );
 }
