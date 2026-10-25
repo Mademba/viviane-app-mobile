@@ -1,5 +1,5 @@
-import React from "react";
-import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { LinearGradient } from "expo-linear-gradient";
@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { API_URL } from "../config";
 import { go, goTab } from "../nav";
 import { openArticle, openTickets } from "./Feed";
+import type { Article } from "../api";
 import { useContent } from "../content";
 import { usePlayer } from "../player";
 import { Body, Button, Cover, Eyebrow, ThemeButton, fmtDate, fmtTime, money, openLink } from "../ui";
@@ -17,7 +18,54 @@ function BannerVideo({ uri }: { uri: string }) {
   return <VideoView player={player} nativeControls={false} contentFit="cover" style={{ width: "100%", height: "100%" }} />;
 }
 
+function NewsCarousel({ items }: { items: Article[] }) {
+  const { c } = useTheme();
+  const { width } = useWindowDimensions();
+  const cardW = width - 56;
+  const gap = 14;
+  const ref = useRef<{ scrollTo: (o: { x: number; animated?: boolean }) => void } | null>(null);
+  const idx = useRef(0);
+  const pause = useRef(0);
+  const [cur, setCur] = useState(0);
+  // Défilement automatique, suspendu quand on touche la liste
+  useEffect(() => {
+    if (items.length < 2) return;
+    const t = setInterval(() => {
+      if (Date.now() < pause.current) return;
+      idx.current = (idx.current + 1) % items.length;
+      ref.current?.scrollTo({ x: idx.current * (cardW + gap), animated: true });
+      setCur(idx.current);
+    }, 4500);
+    return () => clearInterval(t);
+  }, [items.length, cardW]);
+  return (
+    <View style={{ marginTop: 14 }}>
+      <ScrollView ref={ref as never} horizontal showsHorizontalScrollIndicator={false} snapToInterval={cardW + gap} decelerationRate="fast" style={{ marginHorizontal: -20 }}
+        contentContainerStyle={{ paddingHorizontal: 20, gap }}
+        onScrollBeginDrag={() => { pause.current = Date.now() + 9000; }}
+        onMomentumScrollEnd={(e) => { const i = Math.round(e.nativeEvent.contentOffset.x / (cardW + gap)); idx.current = i; setCur(i); }}>
+        {items.map((a) => (
+          <Pressable key={a.id} accessibilityRole="button" onPress={() => openArticle(a)} style={{ width: cardW, borderRadius: 20, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+            <View style={{ height: 230 }}><Cover uri={a.cover_url} size="fill" radius={0} /></View>
+            <View style={{ padding: 16, gap: 6, minHeight: 112 }}>
+              <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>{fmtDate(a.published_at)}</Text>
+              <Text numberOfLines={2} style={{ fontFamily: serif, fontSize: 23, lineHeight: 26, color: c.text }}>{a.title}</Text>
+              {a.excerpt ? <Text numberOfLines={2} style={{ fontFamily: sans, fontSize: 14, lineHeight: 20, color: c.muted }}>{a.excerpt}</Text> : null}
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
+      {items.length > 1 ? (
+        <View style={{ flexDirection: "row", justifyContent: "center", gap: 6, marginTop: 12 }}>
+          {items.map((a, i) => <View key={a.id} style={{ width: i === cur ? 20 : 7, height: 7, borderRadius: 4, backgroundColor: i === cur ? c.rose : c.line }} />)}
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export default function Home() {
+  const { height } = useWindowDimensions();
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const { data, busy, load, err } = useContent();
@@ -61,7 +109,7 @@ export default function Home() {
 
       {showBanner ? (
         <View style={{ marginTop: 22, borderRadius: 18, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-          <View style={{ aspectRatio: 16 / 10 }}>
+          <View style={{ aspectRatio: 4 / 3 }}>
             {st!.home_media_type === "video" ? <BannerVideo uri={st!.home_media_url!} /> : <Cover uri={st!.home_media_url} size="100%" radius={0} />}
           </View>
           {st!.home_title || st!.home_text || (st!.home_button_label && st!.home_button_target !== "none") ? (
@@ -75,18 +123,18 @@ export default function Home() {
       ) : null}
 
       {release ? (
-        <View style={{ marginTop: 22, height: 250, borderRadius: 18, overflow: "hidden", backgroundColor: c.card }}>
+        <View style={{ marginTop: 22, height: Math.max(360, Math.round(height * 0.5)), borderRadius: 22, overflow: "hidden", backgroundColor: c.card }}>
           <View style={{ position: "absolute", inset: 0 } as never}><Cover uri={release.cover_url} size="100%" radius={0} /></View>
           <LinearGradient colors={["rgba(25,1,4,0)", "rgba(25,1,4,.88)"]} locations={[0.35, 1]} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
           <View style={{ flex: 1, padding: 20, justifyContent: "flex-end" }}>
             <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 2.6, textTransform: "uppercase", color: "#e3ad4b" }}>Dernière sortie</Text>
-            <Text numberOfLines={2} style={{ fontFamily: serif, fontSize: 32, lineHeight: 34, color: "#fff0ef", marginTop: 6 }}>{release.title}</Text>
+            <Text numberOfLines={2} style={{ fontFamily: serif, fontSize: 40, lineHeight: 42, color: "#fff0ef", marginTop: 8 }}>{release.title}</Text>
             <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
-              <Pressable accessibilityRole="button" onPress={() => goTo("Ma musique")} style={{ height: 44, paddingHorizontal: 20, borderRadius: 22, backgroundColor: c.rose, flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <Pressable accessibilityRole="button" onPress={() => goTo("Ma musique")} style={{ height: 50, paddingHorizontal: 24, borderRadius: 25, backgroundColor: c.rose, flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Ionicons name="play" size={16} color="#fff" />
                 <Text style={{ fontFamily: sansBold, fontSize: 13, letterSpacing: 1.3, textTransform: "uppercase", color: "#fff" }}>Écouter</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => openArticle(release)} style={{ height: 44, paddingHorizontal: 18, borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,240,239,.55)", justifyContent: "center" }}>
+              <Pressable accessibilityRole="button" onPress={() => openArticle(release)} style={{ height: 50, paddingHorizontal: 22, borderRadius: 25, borderWidth: 1, borderColor: "rgba(255,240,239,.55)", justifyContent: "center" }}>
                 <Text style={{ fontFamily: sansBold, fontSize: 13, letterSpacing: 1.3, textTransform: "uppercase", color: "#fff0ef" }}>Détails</Text>
               </Pressable>
             </View>
@@ -96,13 +144,13 @@ export default function Home() {
 
       {nextEvent ? (
         <>
-          <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 26 }}>Prochain événement</Text>
+          <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 32 }}>Prochain événement</Text>
           <Pressable accessibilityRole="button" onPress={() => goTo("Agenda")} style={{ marginTop: 12, borderRadius: 16, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-            {nextEvent.poster_url ? <View style={{ height: 150 }}><Cover uri={nextEvent.poster_url} size="100%" radius={0} /></View> : null}
-            <View style={{ padding: 14, gap: 4 }}>
-              <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>{fmtDate(nextEvent.starts_at, true)}</Text>
-              <Text style={{ fontFamily: sansBold, fontSize: 17, color: c.text }}>{nextEvent.title}</Text>
-              <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{nextEvent.venue}, {nextEvent.city}{nextEvent.ticket_price ? ` · dès ${money(nextEvent.ticket_price, nextEvent.currency)}` : ""}</Text>
+            {nextEvent.poster_url ? <View style={{ height: 240 }}><Cover uri={nextEvent.poster_url} size="100%" radius={0} /></View> : null}
+            <View style={{ padding: 18, gap: 6 }}>
+              <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>{fmtDate(nextEvent.starts_at, true)}</Text>
+              <Text style={{ fontFamily: serif, fontSize: 26, lineHeight: 29, color: c.text }}>{nextEvent.title}</Text>
+              <Text style={{ fontFamily: sans, fontSize: 15, color: c.soft }}>{nextEvent.venue}, {nextEvent.city}{nextEvent.ticket_price ? ` · dès ${money(nextEvent.ticket_price, nextEvent.currency)}` : ""}</Text>
               {nextEvent.tickets_enabled ? <Button label="Acheter un ticket" onPress={() => openTickets(nextEvent)} style={{ marginTop: 10 }} /> : null}
             </View>
           </Pressable>
@@ -111,7 +159,7 @@ export default function Home() {
 
       {last && lastTrack ? (
         <>
-          <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 26 }}>Reprendre l'écoute</Text>
+          <Text style={{ fontFamily: serif, fontSize: 22, color: c.text, marginTop: 32 }}>Reprendre l'écoute</Text>
           <View style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 14, padding: 12, borderRadius: 14, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
             <Cover uri={last.album.cover_url} size={56} radius={10} />
             <View style={{ flex: 1 }}>
@@ -128,19 +176,11 @@ export default function Home() {
 
       {news.length ? (
         <>
-          <View style={{ marginTop: 26, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
-            <Text style={{ fontFamily: serif, fontSize: 20, color: c.text }}>Actualités</Text>
+          <View style={{ marginTop: 32, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
+            <Text style={{ fontFamily: serif, fontSize: 22, color: c.text }}>Actualités</Text>
             <Pressable accessibilityRole="button" onPress={() => goTo("Actualités")} hitSlop={12}><Text style={{ fontFamily: sans, fontSize: 13, color: c.pink }}>Tout voir</Text></Pressable>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12, marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
-            {news.map((a) => (
-              <Pressable key={a.id} accessibilityRole="button" onPress={() => openArticle(a)} style={{ width: 170 }}>
-                <View style={{ height: 96, borderRadius: 12, overflow: "hidden" }}><Cover uri={a.cover_url} size="100%" radius={0} /></View>
-                <Text numberOfLines={2} style={{ fontFamily: sansBold, fontSize: 14, color: c.text, marginTop: 8, lineHeight: 18 }}>{a.title}</Text>
-                <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 2 }}>{fmtDate(a.published_at)}</Text>
-              </Pressable>
-            ))}
-          </ScrollView>
+          <NewsCarousel items={news} />
         </>
       ) : null}
     </ScrollView>

@@ -12,9 +12,9 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
   const { c } = useTheme();
   return <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: c.gold }}>{children}</Text>;
 }
-export function Body({ children, style }: { children: React.ReactNode; style?: object }) {
+export function Body({ children, style, numberOfLines }: { children: React.ReactNode; style?: object; numberOfLines?: number }) {
   const { c } = useTheme();
-  return <Text style={[{ fontFamily: sans, fontSize: 15, lineHeight: 22, color: c.soft }, style]}>{children}</Text>;
+  return <Text numberOfLines={numberOfLines} style={[{ fontFamily: sans, fontSize: 15, lineHeight: 22, color: c.soft }, style]}>{children}</Text>;
 }
 export function Button({ label, onPress, ghost, disabled, style }: { label: string; onPress: () => void; ghost?: boolean; disabled?: boolean; style?: ViewStyle }) {
   const { c } = useTheme();
@@ -32,9 +32,9 @@ export function Button({ label, onPress, ghost, disabled, style }: { label: stri
     </Pressable>
   );
 }
-export function Cover({ uri, size, radius = 12, label }: { uri?: string | null; size: number | "100%"; radius?: number; label?: string }) {
+export function Cover({ uri, size, radius = 12, label }: { uri?: string | null; size: number | "100%" | "fill"; radius?: number; label?: string }) {
   const { c } = useTheme();
-  const s = size === "100%" ? { width: "100%" as const, aspectRatio: 1 } : { width: size, height: size };
+  const s = size === "fill" ? { width: "100%" as const, height: "100%" as const } : size === "100%" ? { width: "100%" as const, aspectRatio: 1 } : { width: size, height: size };
   return uri ? (
     <Image source={{ uri }} style={[s, { borderRadius: radius, backgroundColor: c.card }]} resizeMode="cover" accessibilityLabel={label} />
   ) : (
@@ -112,19 +112,38 @@ export function Field({ label, value, onChange, keyboard, placeholder, multiline
   );
 }
 
-const PAY: { id: PayMethod; label: string }[] = [{ id: "orange_money", label: "Orange Money" }, { id: "wave", label: "Wave" }, { id: "card", label: "Carte" }];
+const LOGOS = {
+  orange_money: require("../assets/payments/orange-money.png"),
+  wave: require("../assets/payments/wave.png"),
+  visa: require("../assets/payments/visa.png"),
+  mastercard: require("../assets/payments/mastercard.png"),
+};
+const PAY: { id: PayMethod; label: string }[] = [{ id: "orange_money", label: "Orange Money" }, { id: "wave", label: "Wave" }, { id: "card", label: "Carte bancaire" }];
+function Chip({ src, w, h }: { src: number; w: number; h: number }) {
+  return (
+    <View style={{ width: w, height: h, borderRadius: 8, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", padding: 4 }}>
+      <Image source={src} style={{ width: "100%", height: "100%" }} resizeMode="contain" />
+    </View>
+  );
+}
+export function PayLogo({ method }: { method: PayMethod }) {
+  if (method === "card") return <View style={{ flexDirection: "row", gap: 6 }}><Chip src={LOGOS.visa} w={52} h={34} /><Chip src={LOGOS.mastercard} w={52} h={34} /></View>;
+  return <Chip src={method === "wave" ? LOGOS.wave : LOGOS.orange_money} w={64} h={44} />;
+}
 export function PayPicker({ value, onChange }: { value: PayMethod; onChange: (m: PayMethod) => void }) {
   const { c } = useTheme();
   return (
     <View style={{ gap: 8 }}>
       <Text style={{ fontFamily: sans, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: c.muted }}>Moyen de paiement</Text>
-      <View style={{ flexDirection: "row", gap: 8 }}>
+      <View style={{ gap: 8 }}>
         {PAY.map((m) => {
           const on = m.id === value;
           return (
-            <Pressable key={m.id} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => onChange(m.id)}
-              style={{ flex: 1, height: 54, borderRadius: 10, alignItems: "center", justifyContent: "center", borderWidth: on ? 2 : 1, borderColor: on ? c.rose : c.line, backgroundColor: on ? "rgba(221,70,119,.16)" : "transparent" }}>
-              <Text style={{ fontFamily: sansBold, fontSize: 13, color: c.text }}>{m.label}</Text>
+            <Pressable key={m.id} accessibilityRole="button" accessibilityLabel={m.label} accessibilityState={{ selected: on }} onPress={() => onChange(m.id)}
+              style={{ minHeight: 64, borderRadius: 12, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 14, borderWidth: on ? 2 : 1, borderColor: on ? c.rose : c.line, backgroundColor: on ? "rgba(221,70,119,.16)" : "transparent" }}>
+              <PayLogo method={m.id} />
+              <Text style={{ flex: 1, fontFamily: sansBold, fontSize: 15, color: c.text }}>{m.label}</Text>
+              <Ionicons name={on ? "radio-button-on" : "radio-button-off"} size={22} color={on ? c.rose : c.muted} />
             </Pressable>
           );
         })}

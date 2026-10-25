@@ -1,3 +1,4 @@
+import { PayLogo } from "../ui";
 import QrCode from "../QrCode";
 import { withBrowser } from "../session";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -125,6 +126,7 @@ export default function PayFlow({ kind, placed, method, mode, onRetry }: { kind:
   return (
     <View style={box}>
       <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>{placed.next === "simulation" ? "Paiement de test" : "En attente du paiement"}</Text>
+      <View style={{ alignSelf: "flex-start" }}><PayLogo method={method} /></View>
       {placed.next === "simulation" ? (
         <>
           <Body>Mode test : aucun argent n'est prélevé. Choisissez le résultat à simuler.</Body>
