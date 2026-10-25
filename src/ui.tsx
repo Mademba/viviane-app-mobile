@@ -1,3 +1,4 @@
+import { withBrowser } from "./session";
 import React from "react";
 import { Image, Pressable, StyleSheet, Text, View, type ViewStyle } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -135,5 +136,5 @@ export function PayPicker({ value, onChange }: { value: PayMethod; onChange: (m:
 export const money = (n: number, cur: string) => `${Number(n).toLocaleString("fr-FR")} ${cur}`;
 export const validEmail = (e: string) => /^\S+@\S+\.\S+$/.test(e.trim());
 
-export const openLink = (url: string) => (/^https?:\/\//i.test(url) ? WebBrowser.openBrowserAsync(url, { toolbarColor: "#190104", controlsColor: "#e3ad4b" }) : Linking.openURL(url).catch(() => {}));
+export const openLink = (url: string) => (/^https?:\/\//i.test(url) ? withBrowser(() => WebBrowser.openBrowserAsync(url, { toolbarColor: "#190104", controlsColor: "#e3ad4b" })) : Linking.openURL(url).catch(() => {}));
 export { ActivityIndicator };

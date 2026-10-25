@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, AppState, StyleSheet, Modal, Pressable, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer, DarkTheme, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -9,6 +9,7 @@ import { useFonts, CormorantGaramond_700Bold } from "@expo-google-fonts/cormoran
 import { Inter_400Regular, Inter_600SemiBold } from "@expo-google-fonts/inter";
 import { ThemeProvider, useTheme, sans, sansBold } from "./src/theme";
 import { PlayerProvider, usePlayer } from "./src/player";
+import { guard } from "./src/session";
 import { ContentProvider } from "./src/content";
 import Welcome from "./src/screens/Welcome";
 import Music from "./src/screens/Music";
@@ -91,13 +92,25 @@ function Main() {
 
 function Root() {
   const { c } = useTheme();
-  const [entered, setEntered] = useState(false);
+  const [ever, setEver] = useState(false);
+  const [welcome, setWelcome] = useState(true);
+  const left = useRef(false);
+  // Chaque retour dans l'application (après l'avoir quittée) ré-affiche la page de bienvenue.
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", (s) => {
+      if (s === "background") left.current = guard.browser === 0;
+      else if (s === "active" && left.current && guard.browser === 0) { left.current = false; setWelcome(true); }
+      else if (s === "active") left.current = false;
+    });
+    return () => sub.remove();
+  }, []);
   const [fontsOk] = useFonts({ CormorantGaramond_700Bold, Inter_400Regular, Inter_600SemiBold });
   if (!fontsOk) return <View style={{ flex: 1, backgroundColor: "#190104", justifyContent: "center" }}><ActivityIndicator color="#dd4677" /></View>;
   return (
     <>
       <StatusBar style={c.dark ? "light" : "dark"} />
-      {entered ? <Main /> : <Welcome onEnter={() => setEntered(true)} />}
+      {ever ? <Main /> : null}
+      {welcome ? <View style={StyleSheet.absoluteFill}><Welcome onEnter={() => { setEver(true); setWelcome(false); }} /></View> : null}
     </>
   );
 }

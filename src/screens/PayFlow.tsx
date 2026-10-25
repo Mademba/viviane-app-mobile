@@ -1,3 +1,5 @@
+import QrCode from "../QrCode";
+import { withBrowser } from "../session";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Text, View } from "react-native";
 import * as WebBrowser from "expo-web-browser";
@@ -42,7 +44,7 @@ export default function PayFlow({ kind, placed, method, mode, onRetry }: { kind:
   const openPay = useCallback(async () => {
     if (!placed.url) return;
     startPolling();
-    try { await WebBrowser.openBrowserAsync(placed.url, { toolbarColor: "#190104", controlsColor: "#e3ad4b" }); } catch { /* fermé */ }
+    try { await withBrowser(() => WebBrowser.openBrowserAsync(placed.url ?? "", { toolbarColor: "#190104", controlsColor: "#e3ad4b" })); } catch { /* fermé */ }
     void check();
   }, [placed.url, startPolling, check]);
 
@@ -83,6 +85,7 @@ export default function PayFlow({ kind, placed, method, mode, onRetry }: { kind:
               <View key={t.code} style={{ borderWidth: 1, borderColor: c.line, borderRadius: 10, padding: 12 }}>
                 <Text style={{ fontFamily: sansBold, color: c.gold, fontSize: 12, letterSpacing: 1.5, textTransform: "uppercase" }}>{t.type_name}</Text>
                 <Text selectable style={{ fontFamily: sansBold, color: c.text, fontSize: 18, letterSpacing: 2, marginTop: 4 }}>{t.code}</Text>
+                <View style={{ alignItems: "center", marginTop: 12 }}><QrCode value={t.code} /></View>
               </View>
             ))}
           </>
