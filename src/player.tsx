@@ -38,8 +38,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     const t: Track | undefined = album.tracks[index];
     if (!t || !t.available) return;
     setError(null);
+    nowRef.current = { album, index };
+    setNow({ album, index });
     try {
       const src = await trackSource(t.id);
+      // Vérifie d'abord que le serveur accepte la lecture, pour afficher une vraie raison en cas d'échec.
+      const probe = await fetch(src.uri, { headers: { ...src.headers, range: "bytes=0-1" } }).catch(() => null);
+      if (!probe) { setError("Pas de connexion au site. Vérifiez votre réseau."); return; }
+      if (!probe.ok && probe.status !== 206) {
+        const j = await probe.json().catch(() => null);
+        setError(j?.error ?? `Le serveur a refusé la lecture (code ${probe.status}).`);
+        return;
+      }
       if (!player.current) {
         player.current = createAudioPlayer(src, { updateInterval: 500 });
         player.current.addListener("playbackStatusUpdate", (s) => {
@@ -61,8 +71,6 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       } else {
         player.current.replace(src);
       }
-      nowRef.current = { album, index };
-      setNow({ album, index });
       player.current.play();
       if (pending.current) { const at = pending.current; pending.current = null; setTimeout(() => { void player.current?.seekTo(at); }, 400); }
     } catch {

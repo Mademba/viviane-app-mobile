@@ -5,7 +5,7 @@ import { API_URL } from "../config";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, fetchDevices, getToken, removeDevice, setToken, type DeviceOrder } from "../api";
 import { CodeLogin } from "./Music";
-import { Banner, Body, Button, Eyebrow, H1 } from "../ui";
+import { Banner, Body, Button, TopBar } from "../ui";
 import { sans, sansBold, useTheme } from "../theme";
 
 export default function Profile() {
@@ -25,7 +25,7 @@ export default function Profile() {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 32, gap: 16 }}>
-      <View style={{ gap: 4 }}><Eyebrow>Viviane Chidid</Eyebrow><H1>Profil</H1></View>
+      <TopBar title="Profil" />
       {err ? <Banner text={err} /> : null}
       {logged === false ? <CodeLogin onDone={load} /> : null}
       {logged ? orders.map((o) => (

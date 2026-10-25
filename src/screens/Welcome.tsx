@@ -36,7 +36,8 @@ export default function Welcome({ onEnter }: { onEnter: () => void }) {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <LinearGradient colors={c.dark ? ["#3a000c", "#190104"] : ["#ffd9e2", "#fff6f4"]} style={StyleSheet.absoluteFill} />
-      {st?.welcome_video_url ? <BgVideo uri={st.welcome_video_url} /> : st?.welcome_image_url ? <Image source={{ uri: st.welcome_image_url }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+      {st?.welcome_image_url ? <Image source={{ uri: st.welcome_image_url }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+      {st?.welcome_video_url ? <BgVideo uri={st.welcome_video_url} /> : null}
       {!media ? (
         <>
           <View style={[styles.blob, { top: -90, right: -120, backgroundColor: c.rose, opacity: 0.45 }]} />

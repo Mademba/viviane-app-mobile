@@ -1,24 +1,23 @@
 import React from "react";
 import { Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import * as WebBrowser from "expo-web-browser";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { API_URL } from "../config";
+import { go, goTab } from "../nav";
+import { openArticle, openTickets } from "./Feed";
 import { useContent } from "../content";
 import { usePlayer } from "../player";
-import { Body, Button, Cover, Eyebrow, fmtDate, fmtTime } from "../ui";
+import { Body, Button, Cover, Eyebrow, ThemeButton, fmtDate, fmtTime, money, openLink } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
-
-const open = (path: string) => WebBrowser.openBrowserAsync(`${API_URL}${path}`, { toolbarColor: "#190104", controlsColor: "#e3ad4b" });
 
 function BannerVideo({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (p) => { p.loop = true; p.muted = true; p.play(); });
   return <VideoView player={player} nativeControls={false} contentFit="cover" style={{ width: "100%", height: "100%" }} />;
 }
 
-export default function Home({ goTo }: { goTo: (tab: string) => void }) {
+export default function Home() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const { data, busy, load, err } = useContent();
@@ -28,13 +27,15 @@ export default function Home({ goTo }: { goTo: (tab: string) => void }) {
   const release = articles.find((a) => a.is_album);
   const news = articles.filter((a) => a !== release).slice(0, 8);
   const showBanner = Boolean(st && st.home_media_type !== "none" && st.home_media_url);
+  const goTo = goTab;
   const bannerGo = () => {
     if (!st) return;
-    if (st.home_button_target === "url" && st.home_button_url) void open(st.home_button_url.startsWith("/") ? st.home_button_url : `/${st.home_button_url}`);
+    if (st.home_button_target === "url" && st.home_button_url) void openLink(/^https?:/i.test(st.home_button_url) ? st.home_button_url : `${API_URL}${st.home_button_url.startsWith("/") ? "" : "/"}${st.home_button_url}`);
     else if (st.home_button_target === "music") goTo("Ma musique");
     else if (st.home_button_target === "agenda") goTo("Agenda");
     else if (st.home_button_target === "news") goTo("Actualités");
   };
+  const nextEvent = (data?.events ?? []).find((e) => new Date(e.starts_at).getTime() >= Date.now() - 6 * 3600e3);
   const last = p.last;
   const lastTrack = last?.album.tracks[last.index];
   const pct = last && last.duration > 0 ? Math.min(1, last.position / last.duration) : 0;
@@ -47,10 +48,13 @@ export default function Home({ goTo }: { goTo: (tab: string) => void }) {
           <Eyebrow>Viviane Chidid</Eyebrow>
           <Text style={{ fontFamily: serif, fontSize: 30, color: c.text, marginTop: 6 }}>Accueil</Text>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Voir les actualités" onPress={() => goTo("Actualités")}
-          style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}>
-          <Ionicons name="notifications-outline" size={20} color={c.text} />
-        </Pressable>
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Voir les actualités" onPress={() => goTo("Actualités")}
+            style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}>
+            <Ionicons name="notifications-outline" size={20} color={c.text} />
+          </Pressable>
+          <ThemeButton />
+        </View>
       </View>
 
       {err && !data ? <Text style={{ fontFamily: sans, color: c.pink, marginTop: 16 }}>{err}</Text> : null}
@@ -82,12 +86,27 @@ export default function Home({ goTo }: { goTo: (tab: string) => void }) {
                 <Ionicons name="play" size={16} color="#fff" />
                 <Text style={{ fontFamily: sansBold, fontSize: 13, letterSpacing: 1.3, textTransform: "uppercase", color: "#fff" }}>Écouter</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => open(`/album/${release.album_slug ?? release.id}`)} style={{ height: 44, paddingHorizontal: 18, borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,240,239,.55)", justifyContent: "center" }}>
+              <Pressable accessibilityRole="button" onPress={() => openArticle(release)} style={{ height: 44, paddingHorizontal: 18, borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,240,239,.55)", justifyContent: "center" }}>
                 <Text style={{ fontFamily: sansBold, fontSize: 13, letterSpacing: 1.3, textTransform: "uppercase", color: "#fff0ef" }}>Détails</Text>
               </Pressable>
             </View>
           </View>
         </View>
+      ) : null}
+
+      {nextEvent ? (
+        <>
+          <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 26 }}>Prochain événement</Text>
+          <Pressable accessibilityRole="button" onPress={() => goTo("Agenda")} style={{ marginTop: 12, borderRadius: 16, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+            {nextEvent.poster_url ? <View style={{ height: 150 }}><Cover uri={nextEvent.poster_url} size="100%" radius={0} /></View> : null}
+            <View style={{ padding: 14, gap: 4 }}>
+              <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>{fmtDate(nextEvent.starts_at, true)}</Text>
+              <Text style={{ fontFamily: sansBold, fontSize: 17, color: c.text }}>{nextEvent.title}</Text>
+              <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{nextEvent.venue}, {nextEvent.city}{nextEvent.ticket_price ? ` · dès ${money(nextEvent.ticket_price, nextEvent.currency)}` : ""}</Text>
+              {nextEvent.tickets_enabled ? <Button label="Acheter un ticket" onPress={() => openTickets(nextEvent)} style={{ marginTop: 10 }} /> : null}
+            </View>
+          </Pressable>
+        </>
       ) : null}
 
       {last && lastTrack ? (
@@ -115,7 +134,7 @@ export default function Home({ goTo }: { goTo: (tab: string) => void }) {
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 12, marginHorizontal: -20 }} contentContainerStyle={{ paddingHorizontal: 20, gap: 12 }}>
             {news.map((a) => (
-              <Pressable key={a.id} accessibilityRole="button" onPress={() => open(`/actualite/${a.slug}`)} style={{ width: 170 }}>
+              <Pressable key={a.id} accessibilityRole="button" onPress={() => openArticle(a)} style={{ width: 170 }}>
                 <View style={{ height: 96, borderRadius: 12, overflow: "hidden" }}><Cover uri={a.cover_url} size="100%" radius={0} /></View>
                 <Text numberOfLines={2} style={{ fontFamily: sansBold, fontSize: 14, color: c.text, marginTop: 8, lineHeight: 18 }}>{a.title}</Text>
                 <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 2 }}>{fmtDate(a.published_at)}</Text>

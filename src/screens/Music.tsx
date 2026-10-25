@@ -3,7 +3,7 @@ import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, fetchLibrary, getToken, redeem, type LibAlbum } from "../api";
 import { usePlayer } from "../player";
-import { Banner, Body, Button, Cover, Eyebrow, H1, fmtDate } from "../ui";
+import { Banner, Body, Button, Cover, TopBar, fmtDate } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export function CodeLogin({ onDone }: { onDone: () => void }) {
@@ -47,13 +47,13 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 12 }}>
-      <View style={{ paddingHorizontal: 20, gap: 4, marginBottom: 12 }}><Eyebrow>Viviane Chidid</Eyebrow><H1>Ma musique</H1></View>
+      <View style={{ paddingHorizontal: 20, marginBottom: 12 }}><TopBar title="Ma musique" /></View>
       {state === "loading" ? <ActivityIndicator color={c.rose} style={{ marginTop: 40 }} /> : null}
       {state === "login" ? <View style={{ paddingHorizontal: 20 }}><CodeLogin onDone={load} /></View> : null}
       {state === "ready" ? (
         <FlatList
           data={albums} keyExtractor={(a) => a.order_id} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 24 }}
-          ListHeaderComponent={err ? <Banner text={err} /> : undefined}
+          ListHeaderComponent={err || p.error ? <Banner text={(err ?? p.error)!} /> : undefined}
           ListEmptyComponent={<Body>Aucun album pour le moment.</Body>}
           renderItem={({ item: a }) => (
             <View>

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { NavigationContainer, DarkTheme, DefaultTheme, createNavigationContainerRef } from "@react-navigation/native";
+import { NavigationContainer, DarkTheme, DefaultTheme } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { BottomTabBar, createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts, CormorantGaramond_700Bold } from "@expo-google-fonts/cormorant-garamond";
@@ -15,10 +16,14 @@ import Profile from "./src/screens/Profile";
 import Player from "./src/screens/Player";
 import { Agenda, News } from "./src/screens/Feed";
 import Home from "./src/screens/Home";
+import Article from "./src/screens/Article";
+import Album from "./src/screens/Album";
+import Ticket from "./src/screens/Ticket";
+import { nav } from "./src/nav";
 import { Ionicons } from "@expo/vector-icons";
 
 const Tab = createBottomTabNavigator();
-const nav = createNavigationContainerRef();
+const Stack = createNativeStackNavigator();
 const ICON: Record<string, React.ComponentProps<typeof Ionicons>["name"] | undefined> = { Accueil: "home-outline", "Ma musique": "musical-notes-outline", "Actualités": "newspaper-outline", Agenda: "calendar-outline", Profil: "person-outline" };
 
 function MiniPlayer({ onOpen }: { onOpen: () => void }) {
@@ -47,28 +52,37 @@ function Main() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <NavigationContainer theme={theme} ref={nav}>
-        <Tab.Navigator
-          screenOptions={({ route }) => ({
-            headerShown: false,
-            tabBarActiveTintColor: c.gold,
-            tabBarInactiveTintColor: c.muted,
-            tabBarStyle: { backgroundColor: c.bar, borderTopColor: c.line, height: 62 + insets.bottom, paddingTop: 6 },
-            tabBarLabelStyle: { fontFamily: sansBold, fontSize: 11 },
-            tabBarIcon: ({ color }) => (ICON[route.name] ? <Ionicons name={ICON[route.name]!} size={24} color={color} /> : null),
-          })}
-          tabBar={(props) => (
-            <View>
-              <MiniPlayer onOpen={() => setFull(true)} />
-              <BottomTabBar {...props} />
-            </View>
-          )}
-        >
-          <Tab.Screen name="Accueil">{() => <Home goTo={(t) => nav.isReady() && (nav as any).navigate(t)} />}</Tab.Screen>
-          <Tab.Screen name="Ma musique">{() => <Music onOpenPlayer={() => setFull(true)} />}</Tab.Screen>
-          <Tab.Screen name="Actualités" component={News} />
-          <Tab.Screen name="Agenda" component={Agenda} />
-          <Tab.Screen name="Profil" component={Profile} />
-        </Tab.Navigator>
+        <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, animation: "slide_from_right" }}>
+          <Stack.Screen name="Tabs">
+            {() => (
+              <Tab.Navigator
+                screenOptions={({ route }) => ({
+                  headerShown: false,
+                  tabBarActiveTintColor: c.gold,
+                  tabBarInactiveTintColor: c.muted,
+                  tabBarStyle: { backgroundColor: c.bar, borderTopColor: c.line, height: 62 + insets.bottom, paddingTop: 6 },
+                  tabBarLabelStyle: { fontFamily: sansBold, fontSize: 11 },
+                  tabBarIcon: ({ color }) => (ICON[route.name] ? <Ionicons name={ICON[route.name]!} size={24} color={color} /> : null),
+                })}
+                tabBar={(props) => (
+                  <View>
+                    <MiniPlayer onOpen={() => setFull(true)} />
+                    <BottomTabBar {...props} />
+                  </View>
+                )}
+              >
+                <Tab.Screen name="Accueil" component={Home} />
+                <Tab.Screen name="Ma musique">{() => <Music onOpenPlayer={() => setFull(true)} />}</Tab.Screen>
+                <Tab.Screen name="Actualités" component={News} />
+                <Tab.Screen name="Agenda" component={Agenda} />
+                <Tab.Screen name="Profil" component={Profile} />
+              </Tab.Navigator>
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="Article" component={Article as never} />
+          <Stack.Screen name="Album" component={Album as never} />
+          <Stack.Screen name="Ticket" component={Ticket as never} />
+        </Stack.Navigator>
       </NavigationContainer>
       <Modal visible={full} animationType="slide" onRequestClose={() => setFull(false)}><Player onClose={() => setFull(false)} /></Modal>
     </View>

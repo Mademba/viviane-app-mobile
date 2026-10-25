@@ -52,3 +52,88 @@ export const fmtDate = (iso: string, long = false) =>
   new Date(iso).toLocaleDateString("fr-FR", long ? { weekday: "long", day: "numeric", month: "long", year: "numeric" } : { day: "numeric", month: "short", year: "numeric" });
 export const fmtTime = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 export const styles = StyleSheet.create({ screen: { flex: 1 }, pad: { paddingHorizontal: 20 } });
+
+// ───────── Éléments partagés ─────────
+import { Ionicons } from "@expo/vector-icons";
+import { TextInput, ActivityIndicator, Linking } from "react-native";
+import * as WebBrowser from "expo-web-browser";
+import type { PayMethod } from "./api";
+
+export function ThemeButton() {
+  const { c, toggle } = useTheme();
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={c.dark ? "Passer en mode clair" : "Passer en mode sombre"} onPress={toggle}
+      style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}>
+      <Ionicons name={c.dark ? "sunny-outline" : "moon-outline"} size={20} color={c.text} />
+    </Pressable>
+  );
+}
+
+/** En-tête commun : nom + titre à gauche, bouton clair/sombre (et éventuellement autre action) à droite. */
+export function TopBar({ title, extra }: { title: string; extra?: React.ReactNode }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: c.gold }}>Viviane Chidid</Text>
+        <Text style={{ fontFamily: serif, fontSize: 30, color: c.text, marginTop: 6 }}>{title}</Text>
+      </View>
+      <View style={{ flexDirection: "row", gap: 8 }}>{extra}<ThemeButton /></View>
+    </View>
+  );
+}
+
+/** En-tête des écrans empilés : retour + titre court + bouton clair/sombre. */
+export function BackBar({ onBack, label }: { onBack: () => void; label: string }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginLeft: -10 }}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Retour" onPress={onBack} style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 2, paddingRight: 12 }}>
+        <Ionicons name="chevron-back" size={24} color={c.text} />
+        <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2.4, textTransform: "uppercase", color: c.gold }}>{label}</Text>
+      </Pressable>
+      <ThemeButton />
+    </View>
+  );
+}
+
+export function Field({ label, value, onChange, keyboard, placeholder, multiline }: { label: string; value: string; onChange: (v: string) => void; keyboard?: "email-address" | "phone-pad" | "default"; placeholder?: string; multiline?: boolean }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ gap: 6 }}>
+      <Text style={{ fontFamily: sans, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: c.muted }}>{label}</Text>
+      <TextInput
+        value={value} onChangeText={onChange} keyboardType={keyboard ?? "default"} placeholder={placeholder} placeholderTextColor={c.muted}
+        autoCapitalize={keyboard === "email-address" ? "none" : "sentences"} autoCorrect={false} multiline={multiline} accessibilityLabel={label}
+        style={{ minHeight: 48, borderRadius: 10, borderWidth: 1, borderColor: c.line, paddingHorizontal: 14, paddingVertical: multiline ? 10 : 0, color: c.text, fontFamily: sans, fontSize: 15, backgroundColor: c.card }}
+      />
+    </View>
+  );
+}
+
+const PAY: { id: PayMethod; label: string }[] = [{ id: "orange_money", label: "Orange Money" }, { id: "wave", label: "Wave" }, { id: "card", label: "Carte" }];
+export function PayPicker({ value, onChange }: { value: PayMethod; onChange: (m: PayMethod) => void }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={{ fontFamily: sans, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: c.muted }}>Moyen de paiement</Text>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {PAY.map((m) => {
+          const on = m.id === value;
+          return (
+            <Pressable key={m.id} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={() => onChange(m.id)}
+              style={{ flex: 1, height: 54, borderRadius: 10, alignItems: "center", justifyContent: "center", borderWidth: on ? 2 : 1, borderColor: on ? c.rose : c.line, backgroundColor: on ? "rgba(221,70,119,.16)" : "transparent" }}>
+              <Text style={{ fontFamily: sansBold, fontSize: 13, color: c.text }}>{m.label}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+export const money = (n: number, cur: string) => `${Number(n).toLocaleString("fr-FR")} ${cur}`;
+export const validEmail = (e: string) => /^\S+@\S+\.\S+$/.test(e.trim());
+
+export const openLink = (url: string) => (/^https?:\/\//i.test(url) ? WebBrowser.openBrowserAsync(url, { toolbarColor: "#190104", controlsColor: "#e3ad4b" }) : Linking.openURL(url).catch(() => {}));
+export { ActivityIndicator };
