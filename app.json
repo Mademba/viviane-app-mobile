@@ -1,25 +1,25 @@
 {
   "expo": {
-    "name": "viviane-app",
-    "slug": "viviane-app",
+    "name": "Viviane Chidid",
+    "slug": "viviane-chidid",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "ios": {
-      "supportsTablet": true
-    },
+    "userInterfaceStyle": "automatic",
+    "scheme": "vivianechidid",
+    "backgroundColor": "#190104",
+    "splash": { "image": "./assets/splash-icon.png", "resizeMode": "contain", "backgroundColor": "#190104" },
+    "ios": { "supportsTablet": false, "bundleIdentifier": "com.vivianechidid.app", "infoPlist": { "UIBackgroundModes": ["audio"] } },
     "android": {
+      "package": "com.vivianechidid.app",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#190104",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false
     },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    }
+    "plugins": ["expo-secure-store", "expo-font"]
   }
 }
