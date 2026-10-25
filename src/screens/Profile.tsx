@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
+import * as Application from "expo-application";
+import { API_URL } from "../config";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, fetchDevices, getToken, removeDevice, setToken, type DeviceOrder } from "../api";
 import { CodeLogin } from "./Music";
@@ -40,6 +42,7 @@ export default function Profile() {
       )) : null}
       <Button ghost label={c.dark ? "Mode clair" : "Mode sombre"} onPress={toggle} />
       {logged ? <Button ghost label="Se déconnecter de cet appareil" onPress={async () => { await setToken(null); setOrders([]); setLogged(false); }} /> : null}
+      <Body style={{ fontSize: 12, color: c.muted }}>Version {Application.nativeApplicationVersion ?? "dev"} (build {Application.nativeBuildVersion ?? "dev"}) · {API_URL.replace("https://", "")}</Body>
       <Body style={{ fontSize: 12, color: c.muted }}>Chaque achat d'album fonctionne sur 2 appareils au maximum.</Body>
     </ScrollView>
   );

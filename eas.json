@@ -1,7 +1,27 @@
 {
-  "cli": { "version": ">= 16.0.0" },
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "remote"
+  },
   "build": {
-    "preview": { "distribution": "internal", "android": { "buildType": "apk" }, "env": { "EXPO_PUBLIC_API_URL": "https://viviane-chidid.vercel.app" } },
-    "production": { "android": { "buildType": "app-bundle" }, "env": { "EXPO_PUBLIC_API_URL": "https://viviane-chidid.vercel.app" } }
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://viviane-chidid.vercel.app"
+      },
+      "autoIncrement": true
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://viviane-chidid.vercel.app"
+      },
+      "autoIncrement": true
+    }
   }
 }
