@@ -8,6 +8,7 @@ import { useFonts, CormorantGaramond_700Bold } from "@expo-google-fonts/cormoran
 import { Inter_400Regular, Inter_600SemiBold } from "@expo-google-fonts/inter";
 import { ThemeProvider, useTheme, sans, sansBold } from "./src/theme";
 import { PlayerProvider, usePlayer } from "./src/player";
+import { ContentProvider } from "./src/content";
 import Welcome from "./src/screens/Welcome";
 import Music from "./src/screens/Music";
 import Profile from "./src/screens/Profile";
@@ -90,7 +91,9 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <PlayerProvider>
-          <Root />
+          <ContentProvider>
+            <Root />
+          </ContentProvider>
         </PlayerProvider>
       </ThemeProvider>
     </SafeAreaProvider>

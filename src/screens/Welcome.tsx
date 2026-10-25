@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { useVideoPlayer, VideoView } from "expo-video";
+import { useContent } from "../content";
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, Eyebrow } from "../ui";
@@ -20,18 +22,30 @@ function Bar({ h, delay, color }: { h: number; delay: number; color: string }) {
   return <Animated.View style={{ flex: 1, height: `${h * 100}%`, borderRadius: 3, backgroundColor: color, transform: [{ scaleY: v }] }} />;
 }
 
+function BgVideo({ uri }: { uri: string }) {
+  const player = useVideoPlayer(uri, (p) => { p.loop = true; p.muted = true; p.play(); });
+  return <VideoView player={player} nativeControls={false} contentFit="cover" style={StyleSheet.absoluteFill} />;
+}
+
 export default function Welcome({ onEnter }: { onEnter: () => void }) {
   const { c, toggle } = useTheme();
   const insets = useSafeAreaInsets();
+  const st = useContent().data?.settings;
+  const media = Boolean(st?.welcome_video_url || st?.welcome_image_url);
   const fade = c.dark ? "25,1,4" : "255,246,244";
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <LinearGradient colors={c.dark ? ["#3a000c", "#190104"] : ["#ffd9e2", "#fff6f4"]} style={StyleSheet.absoluteFill} />
-      <View style={[styles.blob, { top: -90, right: -120, backgroundColor: c.rose, opacity: 0.45 }]} />
-      <View style={[styles.blob, { top: 260, left: -150, backgroundColor: c.gold, opacity: 0.3 }]} />
-      <View style={{ position: "absolute", left: 22, right: 22, bottom: 440, height: 130, flexDirection: "row", alignItems: "flex-end", gap: 6 }}>
-        {BARS.map((h, i) => <Bar key={i} h={h} delay={i * 130} color={c.dark ? "rgba(255,240,239,.22)" : "rgba(42,7,16,.14)"} />)}
-      </View>
+      {st?.welcome_video_url ? <BgVideo uri={st.welcome_video_url} /> : st?.welcome_image_url ? <Image source={{ uri: st.welcome_image_url }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : null}
+      {!media ? (
+        <>
+          <View style={[styles.blob, { top: -90, right: -120, backgroundColor: c.rose, opacity: 0.45 }]} />
+          <View style={[styles.blob, { top: 260, left: -150, backgroundColor: c.gold, opacity: 0.3 }]} />
+          <View style={{ position: "absolute", left: 22, right: 22, bottom: 440, height: 130, flexDirection: "row", alignItems: "flex-end", gap: 6 }}>
+            {BARS.map((h, i) => <Bar key={i} h={h} delay={i * 130} color={c.dark ? "rgba(255,240,239,.22)" : "rgba(42,7,16,.14)"} />)}
+          </View>
+        </>
+      ) : null}
       <LinearGradient colors={[`rgba(${fade},.1)`, `rgba(${fade},.55)`, `rgba(${fade},.96)`]} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
       <View style={{ position: "absolute", left: 28, right: 20, top: insets.top + 12, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <Eyebrow>Viviane Chidid</Eyebrow>
@@ -42,9 +56,9 @@ export default function Welcome({ onEnter }: { onEnter: () => void }) {
       </View>
       <View style={{ position: "absolute", left: 28, right: 28, bottom: insets.bottom + 40 }}>
         <Eyebrow>L'application officielle</Eyebrow>
-        <Text style={{ fontFamily: serif, fontSize: 46, lineHeight: 48, color: c.text, marginTop: 12 }}>{"Bienvenue\ndans l'univers\nde Viviane"}</Text>
-        <Text style={{ fontFamily: sans, fontSize: 16, lineHeight: 24, color: c.soft, marginTop: 16 }}>Sa musique, ses actualités et ses concerts, partout avec vous.</Text>
-        <Button label="Clique ici  →" onPress={onEnter} style={{ marginTop: 28, height: 60, borderRadius: 30 }} />
+        <Text style={{ fontFamily: serif, fontSize: 46, lineHeight: 48, color: c.text, marginTop: 12 }}>{st?.welcome_title || "Bienvenue\ndans l'univers\nde Viviane"}</Text>
+        <Text style={{ fontFamily: sans, fontSize: 16, lineHeight: 24, color: c.soft, marginTop: 16 }}>{st?.welcome_text || "Sa musique, ses actualités et ses concerts, partout avec vous."}</Text>
+        <Button label={`${st?.welcome_button || "Clique ici"}  →`} onPress={onEnter} style={{ marginTop: 28, height: 60, borderRadius: 30 }} />
       </View>
     </View>
   );

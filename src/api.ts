@@ -10,6 +10,13 @@ export type EventItem = {
   id: string; title: string; description: string | null; venue: string; city: string; starts_at: string;
   poster_url: string | null; ticket_price: number | null; currency: string; tickets_enabled: boolean; slug?: string | null;
 };
+export type AppSettings = {
+  welcome_video_url: string | null; welcome_image_url: string | null; welcome_title: string | null;
+  welcome_text: string | null; welcome_button: string | null;
+  home_media_type: "none" | "photo" | "video"; home_media_url: string | null; home_title: string | null;
+  home_text: string | null; home_button_label: string | null;
+  home_button_target: "none" | "music" | "agenda" | "news" | "url"; home_button_url: string | null;
+};
 export type Article = {
   id: string; title: string; slug: string; excerpt: string | null; cover_url: string | null;
   published_at: string; featured: boolean; is_album?: boolean; album_slug?: string | null;
@@ -73,7 +80,7 @@ export async function redeem(code: string) {
 export const fetchLibrary = () => call<{ albums: LibAlbum[] }>("/api/app/library").then((r) => r.albums);
 export const fetchDevices = () => call<{ orders: DeviceOrder[] }>("/api/app/devices").then((r) => r.orders);
 export const removeDevice = (device: string) => call("/api/app/device-remove", { method: "POST", body: JSON.stringify({ device }) });
-export const fetchContent = () => call<{ events: EventItem[]; articles: Article[] }>("/api/app/content", {}, false);
+export const fetchContent = () => call<{ events: EventItem[]; articles: Article[]; settings: AppSettings | null }>("/api/app/content", {}, false);
 export const trackSource = async (trackId: string) => ({
   uri: `${API_URL}/api/app/track/${trackId}`,
   headers: { authorization: `Bearer ${await getToken()}` },
