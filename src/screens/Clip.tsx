@@ -6,13 +6,19 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trackSource, type LibAlbum } from "../api";
 import { usePlayer } from "../player";
 import { BackBar, Banner } from "../ui";
+import Watermark, { wmText } from "../Watermark";
 import { sans, serif, useTheme } from "../theme";
 
 type Src = { uri: string; headers: Record<string, string> };
 
-function Video({ src }: { src: Src }) {
+function Video({ src, wm }: { src: Src; wm: string }) {
   const player = useVideoPlayer({ uri: src.uri, headers: src.headers }, (p) => { p.loop = false; p.play(); });
-  return <VideoView player={player} nativeControls fullscreenOptions={{ enable: true }} contentFit="contain" style={{ width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000" }} />;
+  return (
+    <View style={{ width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000" }}>
+      <VideoView player={player} nativeControls fullscreenOptions={{ enable: false }} contentFit="contain" style={{ width: "100%", height: "100%" }} />
+      <Watermark text={wm} />
+    </View>
+  );
 }
 
 /** Lecture d'un clip vidéo exclusif acheté (flux protégé, captures d'écran bloquées). */
@@ -42,11 +48,11 @@ export default function Clip({ route, navigation }: { route: { params: { album: 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 8, paddingHorizontal: 0 }}>
       <View style={{ paddingHorizontal: 20, paddingBottom: 14 }}><BackBar onBack={navigation.goBack} label={a.title} /></View>
-      {src ? <Video src={src} /> : err ? <View style={{ paddingHorizontal: 20 }}><Banner text={err} /></View> : <ActivityIndicator color={c.rose} style={{ marginTop: 60 }} />}
+      {src ? <Video src={src} wm={wmText(a.fan)} /> : err ? <View style={{ paddingHorizontal: 20 }}><Banner text={err} /></View> : <ActivityIndicator color={c.rose} style={{ marginTop: 60 }} />}
       <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
         <Text style={{ fontFamily: serif, fontSize: 30, color: c.text }}>{a.title}</Text>
         <Text style={{ fontFamily: sans, fontSize: 14, color: c.muted, marginTop: 6 }}>Clip vidéo exclusif · Viviane Chidid</Text>
-        <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 14 }}>Contenu réservé : captures et enregistrements d'écran désactivés.</Text>
+        <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 14 }}>Contenu réservé : captures d'écran désactivées. Votre identifiant apparaît en filigrane sur la vidéo ; toute diffusion est tracée.</Text>
       </View>
     </View>
   );

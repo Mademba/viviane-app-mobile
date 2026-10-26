@@ -4,6 +4,7 @@ import { usePreventScreenCapture } from "expo-screen-capture";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayer } from "../player";
 import { Banner, Cover, fmtTime } from "../ui";
+import Watermark, { wmText } from "../Watermark";
 import { sans, serif, useTheme } from "../theme";
 
 export default function Player({ onClose }: { onClose: () => void }) {
@@ -38,6 +39,7 @@ export default function Player({ onClose }: { onClose: () => void }) {
         <Ctl big label={p.playing ? "Pause" : "Lecture"} glyph={p.playing ? "❚❚" : "▶"} onPress={p.toggle} />
         <Ctl label="Morceau suivant" glyph="⏭" onPress={p.next} />
       </View>
+      <Watermark text={wmText(p.now?.album.fan)} opacity={0.1} />
     </View>
   );
 }
