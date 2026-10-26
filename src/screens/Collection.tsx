@@ -3,18 +3,21 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { LibAlbum } from "../api";
-import { ui } from "../nav";
+import { go, ui } from "../nav";
+import { usePreventScreenCapture } from "expo-screen-capture";
 import { usePlayer } from "../player";
 import { BackBar, Banner, Body, Button, NaturalImage, fmtDate } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 /** Dossier d'un album ou single acheté : pochette, puis tracklist. */
 export default function Collection({ route, navigation }: { route: { params: { album: LibAlbum } }; navigation: { goBack: () => void } }) {
+  usePreventScreenCapture("collection");
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const p = usePlayer();
   const a = route.params.album;
-  const kind = a.kind === "single" ? "Single" : "Album";
+  const isClip = a.kind === "clip";
+  const kind = isClip ? "Clip vidéo exclusif" : a.kind === "single" ? "Single" : "Album";
   const first = a.tracks.findIndex((t) => t.available);
   const year = a.release_date ? new Date(a.release_date).getFullYear() : null;
   const start = async (i: number) => { await p.play(a, i); ui.openPlayer(); };
@@ -26,17 +29,17 @@ export default function Collection({ route, navigation }: { route: { params: { a
       <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
         <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2.4, textTransform: "uppercase", color: c.gold }}>{kind}{year ? ` · ${year}` : ""}</Text>
         <Text style={{ fontFamily: serif, fontSize: 38, lineHeight: 40, color: c.text, marginTop: 8 }}>{a.title}</Text>
-        <Text style={{ fontFamily: sans, fontSize: 14, color: c.muted, marginTop: 6 }}>{a.tracks.length} titre{a.tracks.length > 1 ? "s" : ""}</Text>
+        {isClip ? null : <Text style={{ fontFamily: sans, fontSize: 14, color: c.muted, marginTop: 6 }}>{a.tracks.length} titre{a.tracks.length > 1 ? "s" : ""}</Text>}
 
         {!a.released ? (
           <View style={{ marginTop: 18 }}><Banner kind="info" text={`Disponible le ${a.release_date ? fmtDate(a.release_date, true) : "jour de la sortie"} : l'écoute s'ouvrira automatiquement.`} /></View>
         ) : first >= 0 ? (
-          <View style={{ marginTop: 18 }}><Button label="▶  Tout lire" onPress={() => void start(first)} /></View>
+          <View style={{ marginTop: 18 }}><Button label={isClip ? "▶  Regarder le clip" : "▶  Tout lire"} onPress={() => (isClip ? go("Clip", { album: a }) : void start(first))} /></View>
         ) : <View style={{ marginTop: 18 }}><Body>Les morceaux arrivent bientôt.</Body></View>}
         {p.error ? <View style={{ marginTop: 12 }}><Banner text={p.error} /></View> : null}
 
         <View style={{ marginTop: 18 }}>
-          {a.tracks.map((t, i) => {
+          {(isClip ? [] : a.tracks).map((t, i) => {
             const active = p.now?.album.album_id === a.album_id && p.now.index === i;
             const ok = t.available && a.released;
             return (

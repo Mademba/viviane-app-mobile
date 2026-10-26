@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, AppState, StyleSheet, Modal, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, AppState, BackHandler, StyleSheet, Pressable, Text, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer, DarkTheme, DefaultTheme } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -20,6 +20,7 @@ import Home from "./src/screens/Home";
 import Article from "./src/screens/Article";
 import Album from "./src/screens/Album";
 import Collection from "./src/screens/Collection";
+import ClipScreen from "./src/screens/Clip";
 import Ticket from "./src/screens/Ticket";
 import { nav, ui } from "./src/nav";
 import { Ionicons } from "@expo/vector-icons";
@@ -51,6 +52,11 @@ function Main() {
   const insets = useSafeAreaInsets();
   const [full, setFull] = useState(false);
   ui.openPlayer = () => setFull(true);
+  useEffect(() => {
+    if (!full) return;
+    const sub = BackHandler.addEventListener("hardwareBackPress", () => { setFull(false); return true; });
+    return () => sub.remove();
+  }, [full]);
   const theme = { ...(c.dark ? DarkTheme : DefaultTheme), colors: { ...(c.dark ? DarkTheme : DefaultTheme).colors, background: c.bg, card: c.bar, text: c.text, border: c.line, primary: c.gold } };
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -85,10 +91,11 @@ function Main() {
           <Stack.Screen name="Article" component={Article as never} />
           <Stack.Screen name="Album" component={Album as never} />
           <Stack.Screen name="Collection" component={Collection as never} />
+          <Stack.Screen name="Clip" component={ClipScreen as never} />
           <Stack.Screen name="Ticket" component={Ticket as never} />
         </Stack.Navigator>
       </NavigationContainer>
-      <Modal visible={full} animationType="slide" onRequestClose={() => setFull(false)}><Player onClose={() => setFull(false)} /></Modal>
+      {full ? <View style={StyleSheet.absoluteFill}><Player onClose={() => setFull(false)} /></View> : null}
     </View>
   );
 }

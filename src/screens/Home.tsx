@@ -10,7 +10,7 @@ import { openArticle, openTickets } from "./Feed";
 import type { Article } from "../api";
 import { useContent } from "../content";
 import { usePlayer } from "../player";
-import { Body, Button, Cover, FitImage, Eyebrow, ThemeButton, fmtDate, fmtTime, money, openLink } from "../ui";
+import { Body, Button, Cover, FitImage, Lightbox, Eyebrow, ThemeButton, fmtDate, fmtTime, money, openLink } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 function BannerVideo({ uri }: { uri: string }) {
@@ -66,6 +66,7 @@ function NewsCarousel({ items }: { items: Article[] }) {
 
 export default function Home() {
   const { height } = useWindowDimensions();
+  const [poster, setPoster] = useState<string | null>(null);
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const { data, busy, load, err } = useContent();
@@ -145,15 +146,16 @@ export default function Home() {
       {nextEvent ? (
         <>
           <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 32 }}>Prochain événement</Text>
-          <Pressable accessibilityRole="button" onPress={() => goTo("Agenda")} style={{ marginTop: 12, borderRadius: 16, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-            {nextEvent.poster_url ? <View style={{ height: 240 }}><Cover uri={nextEvent.poster_url} size="100%" radius={0} /></View> : null}
-            <View style={{ padding: 18, gap: 6 }}>
+          <View style={{ marginTop: 12, borderRadius: 18, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+            {nextEvent.poster_url ? <FitImage uri={nextEvent.poster_url} ratio={1.1} onPress={() => setPoster(nextEvent.poster_url)} label="Agrandir l'affiche" /> : null}
+            <Pressable accessibilityRole="button" onPress={() => goTo("Agenda")} style={{ padding: 18, gap: 6 }}>
               <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>{fmtDate(nextEvent.starts_at, true)}</Text>
               <Text style={{ fontFamily: serif, fontSize: 26, lineHeight: 29, color: c.text }}>{nextEvent.title}</Text>
               <Text style={{ fontFamily: sans, fontSize: 15, color: c.soft }}>{nextEvent.venue}, {nextEvent.city}{nextEvent.ticket_price ? ` · dès ${money(nextEvent.ticket_price, nextEvent.currency)}` : ""}</Text>
-              {nextEvent.tickets_enabled ? <Button label="Acheter un ticket" onPress={() => openTickets(nextEvent)} style={{ marginTop: 10 }} /> : null}
-            </View>
-          </Pressable>
+              {nextEvent.poster_url ? <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted }}>Touchez l'affiche pour l'agrandir.</Text> : null}
+            </Pressable>
+            {nextEvent.tickets_enabled ? <View style={{ paddingHorizontal: 18, paddingBottom: 18 }}><Button label="Acheter un ticket" onPress={() => openTickets(nextEvent)} /></View> : null}
+          </View>
         </>
       ) : null}
 
@@ -183,6 +185,7 @@ export default function Home() {
           <NewsCarousel items={news} />
         </>
       ) : null}
+      <Lightbox photos={poster ? [poster] : []} start={poster ? 0 : null} onClose={() => setPoster(null)} />
     </ScrollView>
   );
 }

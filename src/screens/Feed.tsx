@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Article, EventItem } from "../api";
 import { useContent } from "../content";
 import { go } from "../nav";
-import { Banner, Body, Button, Cover, FitImage, TopBar, fmtDate, money } from "../ui";
+import { Banner, Body, Button, Cover, FitImage, Lightbox, TopBar, fmtDate, money } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export const openArticle = (a: Article) => (a.is_album ? go("Album", { id: a.album_slug ?? a.id }) : go("Article", { article: a }));
@@ -70,6 +70,7 @@ export function Agenda() {
   const { c } = useTheme();
   const { data, err, busy, load } = useContent();
   const [showAll, setShowAll] = useState(false);
+  const [poster, setPoster] = useState<string | null>(null);
   const limit = Date.now() - 6 * 3600e3;
   const all = data?.events ?? [];
   const upcoming = all.filter((e) => new Date(e.starts_at).getTime() >= limit);
@@ -110,16 +111,16 @@ export function Agenda() {
         return (
           <View style={{ borderRadius: 22, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
             <View>
-              <FitImage uri={featured.poster_url} ratio={0.85} />
+              <FitImage uri={featured.poster_url} ratio={1.2} onPress={() => setPoster(featured.poster_url)} label="Agrandir l'affiche" />
               <Text style={{ position: "absolute", left: 14, top: 14, backgroundColor: c.rose, color: "#fff", fontFamily: sansBold, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: "hidden" }}>À l'affiche</Text>
             </View>
-            <View style={{ padding: 20, gap: 14 }}>
-              <Text style={{ fontFamily: serif, fontSize: 32, lineHeight: 35, color: c.text }}>{featured.title}</Text>
-              <View style={{ gap: 10 }}>
+            <View style={{ padding: 16, gap: 10 }}>
+              <Text style={{ fontFamily: serif, fontSize: 27, lineHeight: 30, color: c.text }}>{featured.title}</Text>
+              <View style={{ gap: 8 }}>
                 {([["calendar-outline", fmtDate(featured.starts_at, true)], ["time-outline", hour === "00:00" ? "Horaire à confirmer" : hour], ["location-outline", `${featured.venue}, ${featured.city}`]] as const).map(([icon, txt]) => (
                   <View key={icon} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
                     <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(221,70,119,.16)", alignItems: "center", justifyContent: "center" }}><Ionicons name={icon} size={18} color={c.pink} /></View>
-                    <Text style={{ flex: 1, fontFamily: sans, fontSize: 16, lineHeight: 22, color: c.text }}>{txt}</Text>
+                    <Text style={{ flex: 1, fontFamily: sans, fontSize: 15, lineHeight: 20, color: c.text }}>{txt}</Text>
                   </View>
                 ))}
                 {featured.ticket_price ? (
@@ -129,7 +130,7 @@ export function Agenda() {
                   </View>
                 ) : null}
               </View>
-              {featured.description ? <Body numberOfLines={4} style={{ fontSize: 14.5 }}>{featured.description}</Body> : null}
+              {featured.description ? <Body numberOfLines={3} style={{ fontSize: 14 }}>{featured.description}</Body> : null}
               {featured.tickets_enabled ? <Button label="Acheter un ticket" onPress={() => openTickets(featured)} /> : null}
             </View>
           </View>
@@ -152,6 +153,7 @@ export function Agenda() {
           ) : null}
         </>
       ) : null}
+      <Lightbox photos={poster ? [poster] : []} start={poster ? 0 : null} onClose={() => setPoster(null)} />
     </Screen>
   );
 }

@@ -1,11 +1,13 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
+import { usePreventScreenCapture } from "expo-screen-capture";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayer } from "../player";
 import { Banner, Cover, fmtTime } from "../ui";
 import { sans, serif, useTheme } from "../theme";
 
 export default function Player({ onClose }: { onClose: () => void }) {
+  usePreventScreenCapture("player");
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const p = usePlayer();

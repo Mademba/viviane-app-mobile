@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { go } from "../nav";
+import { usePreventScreenCapture } from "expo-screen-capture";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, fetchLibrary, getToken, redeem, type LibAlbum } from "../api";
 import { usePlayer } from "../player";
@@ -31,7 +32,8 @@ export function CodeLogin({ onDone }: { onDone: () => void }) {
   );
 }
 
-type Filter = "all" | "album" | "single";
+type Filter = "all" | "album" | "single" | "clip";
+const KIND: Record<string, string> = { album: "Album", single: "Single", clip: "Clip vidéo" };
 
 function Folder({ a, onPress }: { a: LibAlbum; onPress: () => void }) {
   const { c } = useTheme();
@@ -40,11 +42,11 @@ function Folder({ a, onPress }: { a: LibAlbum; onPress: () => void }) {
       <View style={{ borderRadius: 16, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}>
         <Cover uri={a.cover_url} size="100%" radius={16} label={`Pochette ${a.title}`} />
         <View style={{ position: "absolute", right: 10, bottom: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(25,1,4,.78)", alignItems: "center", justifyContent: "center" }}>
-          <Ionicons name="play" size={15} color="#fff" />
+          <Ionicons name={a.kind === "clip" ? "videocam" : "play"} size={15} color="#fff" />
         </View>
       </View>
       <Text numberOfLines={2} style={{ fontFamily: sansBold, fontSize: 15, color: c.text, marginTop: 9 }}>{a.title}</Text>
-      <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 2 }}>{a.kind === "single" ? "Single" : "Album"} · {a.tracks.length} titre{a.tracks.length > 1 ? "s" : ""}</Text>
+      <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 2 }}>{KIND[a.kind ?? "album"]}{a.kind === "clip" ? "" : ` · ${a.tracks.length} titre${a.tracks.length > 1 ? "s" : ""}`}</Text>
     </Pressable>
   );
 }
@@ -53,6 +55,7 @@ const daysUntil = (iso: string | null) => (iso ? Math.max(0, Math.ceil((new Date
 
 export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
   void onOpenPlayer;
+  usePreventScreenCapture("music");
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const p = usePlayer();
@@ -69,7 +72,7 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  const list = albums.filter((a) => filter === "all" || (filter === "single" ? a.kind === "single" : a.kind !== "single"));
+  const list = albums.filter((a) => filter === "all" || (a.kind ?? "album") === filter);
   const soon = list.filter((a) => !a.released);
   const ready = list.filter((a) => a.released);
   const rows: LibAlbum[][] = [];
@@ -86,10 +89,10 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
       {state === "ready" ? (
         <>
           {err || p.error ? <View style={{ marginTop: 12 }}><Banner text={(err ?? p.error)!} /></View> : null}
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 16 }}>
-            {([["all", "Tout"], ["album", "Albums"], ["single", "Singles"]] as const).map(([k, l]) => (
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+            {([["all", "Tout"], ["album", "Albums"], ["single", "Singles"], ["clip", "Clips"]] as const).map(([k, l]) => (
               <Pressable key={k} accessibilityRole="button" accessibilityState={{ selected: filter === k }} onPress={() => setFilter(k)}
-                style={{ height: 40, paddingHorizontal: 18, borderRadius: 20, justifyContent: "center", borderWidth: 1, borderColor: filter === k ? c.rose : c.line, backgroundColor: filter === k ? c.rose : "transparent" }}>
+                style={{ height: 40, paddingHorizontal: 15, borderRadius: 20, justifyContent: "center", borderWidth: 1, borderColor: filter === k ? c.rose : c.line, backgroundColor: filter === k ? c.rose : "transparent" }}>
                 <Text style={{ fontFamily: sansBold, fontSize: 13, color: filter === k ? c.onRose : c.text }}>{l}</Text>
               </Pressable>
             ))}
