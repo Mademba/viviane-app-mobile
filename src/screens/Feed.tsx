@@ -37,18 +37,18 @@ export function News() {
       {data && !list.length ? <Body>Aucune actualité pour le moment.</Body> : null}
       {top ? (
         <Pressable accessibilityRole="button" onPress={() => openArticle(top)} style={{ borderRadius: 18, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-          <FitImage uri={top.cover_url} ratio={1.6} />
-          <View style={{ padding: 18, gap: 10 }}>
-            <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 2, color: c.gold, textTransform: "uppercase" }}>{fmtDate(top.published_at, true)}</Text>
-            <Text style={{ fontFamily: serif, fontSize: 28, lineHeight: 31, color: c.text }}>{top.title}</Text>
-            {top.excerpt ? <Body numberOfLines={3} style={{ fontSize: 15 }}>{top.excerpt}</Body> : null}
+          <FitImage uri={top.cover_url} ratio={1.05} />
+          <View style={{ padding: 20, gap: 12 }}>
+            <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2, color: c.gold, textTransform: "uppercase" }}>{fmtDate(top.published_at, true)}</Text>
+            <Text style={{ fontFamily: serif, fontSize: 34, lineHeight: 37, color: c.text }}>{top.title}</Text>
+            {top.excerpt ? <Body numberOfLines={4} style={{ fontSize: 16, lineHeight: 24 }}>{top.excerpt}</Body> : null}
             <Button label={top.is_album ? "Voir l'album" : "Lire l'article"} onPress={() => openArticle(top)} style={{ marginTop: 6 }} />
           </View>
         </Pressable>
       ) : null}
       {rest.map((a) => (
         <Pressable key={a.id} accessibilityRole="button" onPress={() => openArticle(a)} style={{ flexDirection: "row", gap: 14, padding: 12, borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-          <Cover uri={a.cover_url} size={112} radius={12} />
+          <View style={{ width: 112 }}><FitImage uri={a.cover_url} ratio={1} radius={12} /></View>
           <View style={{ flex: 1, justifyContent: "center", gap: 6 }}>
             <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 2, color: c.gold, textTransform: "uppercase" }}>{fmtDate(a.published_at)}</Text>
             <Text numberOfLines={3} style={{ fontFamily: sansBold, fontSize: 17, lineHeight: 22, color: c.text }}>{a.title}</Text>

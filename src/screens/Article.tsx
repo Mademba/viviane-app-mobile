@@ -42,10 +42,8 @@ export default function Article({ route, navigation }: { route: { params: { arti
   return (
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingBottom: 48 }}>
       {/* 1. Photo de couverture entière, sans texte dessus */}
-      <View>
-        <NaturalImage uri={a.cover_url} min={0.9} max={1.5} />
-        <View style={{ position: "absolute", left: 20, right: 20, top: insets.top + 8 }}><BackBar onBack={navigation.goBack} label="Actualités" /></View>
-      </View>
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 10 }}><BackBar onBack={navigation.goBack} label="Actualités" /></View>
+      <NaturalImage uri={a.cover_url} min={0.7} max={1.5} />
 
       {/* 2. Titre, date, résumé */}
       <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>

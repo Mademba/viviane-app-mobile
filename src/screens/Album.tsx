@@ -66,10 +66,8 @@ export default function Album({ route, navigation }: { route: { params: { id: st
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 150 }} keyboardShouldPersistTaps="handled">
-        <View>
-          <NaturalImage uri={a?.cover_url ?? sale?.item.poster_url} min={0.9} max={1.2} />
-          <View style={{ position: "absolute", left: 20, right: 20, top: insets.top + 8 }}><BackBar onBack={navigation.goBack} label="Album" /></View>
-        </View>
+        <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 10 }}><BackBar onBack={navigation.goBack} label="Album" /></View>
+        <NaturalImage uri={a?.cover_url ?? sale?.item.poster_url} min={0.7} max={1.2} />
         {sale ? (
           <View style={{ paddingHorizontal: 22, paddingTop: 22, paddingBottom: 6 }}>
             {pre ? <Text style={{ alignSelf: "flex-start", backgroundColor: c.rose, color: "#fff", fontFamily: sansBold, fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12, overflow: "hidden", marginBottom: 10 }}>Précommande</Text> : null}

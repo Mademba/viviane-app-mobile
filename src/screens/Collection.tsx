@@ -21,10 +21,8 @@ export default function Collection({ route, navigation }: { route: { params: { a
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingBottom: 48 }}>
-      <View>
-        <NaturalImage uri={a.cover_url} min={0.9} max={1.2} />
-        <View style={{ position: "absolute", left: 20, right: 20, top: insets.top + 8 }}><BackBar onBack={navigation.goBack} label="Ma musique" /></View>
-      </View>
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 10 }}><BackBar onBack={navigation.goBack} label="Ma musique" /></View>
+      <NaturalImage uri={a.cover_url} min={0.7} max={1.2} />
       <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>
         <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2.4, textTransform: "uppercase", color: c.gold }}>{kind}{year ? ` · ${year}` : ""}</Text>
         <Text style={{ fontFamily: serif, fontSize: 38, lineHeight: 40, color: c.text, marginTop: 8 }}>{a.title}</Text>
