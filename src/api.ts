@@ -80,7 +80,7 @@ export async function redeem(code: string) {
   );
   await setToken(r.token);
 }
-export const fetchLibrary = () => call<{ albums: LibAlbum[] }>("/api/app/library").then((r) => r.albums);
+export const fetchLibrary = () => call<{ albums: LibAlbum[] }>("/api/app/library").then((r) => r.albums.map((a) => ({ ...a, cover_url: absUrl(a.cover_url) })));
 export const fetchDevices = () => call<{ orders: DeviceOrder[] }>("/api/app/devices").then((r) => r.orders);
 export const removeDevice = (device: string) => call("/api/app/device-remove", { method: "POST", body: JSON.stringify({ device }) });
 /** Les fichiers téléversés ont une adresse relative (/api/public/media/…) : on la rend absolue. */

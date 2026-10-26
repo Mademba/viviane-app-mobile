@@ -32,8 +32,9 @@ export function Button({ label, onPress, ghost, disabled, style }: { label: stri
     </Pressable>
   );
 }
-export function Cover({ uri, size, radius = 12, label }: { uri?: string | null; size: number | "100%" | "fill"; radius?: number; label?: string }) {
+export function Cover({ uri: raw, size, radius = 12, label }: { uri?: string | null; size: number | "100%" | "fill"; radius?: number; label?: string }) {
   const { c } = useTheme();
+  const uri = absUrl(raw);
   const s = size === "fill" ? { width: "100%" as const, height: "100%" as const } : size === "100%" ? { width: "100%" as const, aspectRatio: 1 } : { width: size, height: size };
   return uri ? (
     <Image source={{ uri }} style={[s, { borderRadius: radius, backgroundColor: c.card }]} resizeMode="cover" accessibilityLabel={label} />
@@ -58,7 +59,7 @@ export const styles = StyleSheet.create({ screen: { flex: 1 }, pad: { paddingHor
 import { Ionicons } from "@expo/vector-icons";
 import { TextInput, ActivityIndicator, Linking } from "react-native";
 import * as WebBrowser from "expo-web-browser";
-import type { PayMethod } from "./api";
+import { absUrl, type PayMethod } from "./api";
 
 export function ThemeButton() {
   const { c, toggle } = useTheme();
@@ -161,8 +162,9 @@ export { ActivityIndicator };
 
 // ───────── Photos : jamais coupées ─────────
 /** Photo entière dans un cadre de ratio fixe : fond flouté + image « contain » (rien n'est rogné). */
-export function FitImage({ uri, ratio = 1.5, radius = 0, onPress, label }: { uri?: string | null; ratio?: number; radius?: number; onPress?: () => void; label?: string }) {
+export function FitImage({ uri: raw, ratio = 1.5, radius = 0, onPress, label }: { uri?: string | null; ratio?: number; radius?: number; onPress?: () => void; label?: string }) {
   const { c } = useTheme();
+  const uri = absUrl(raw);
   const body = (
     <View style={{ width: "100%", aspectRatio: ratio, borderRadius: radius, overflow: "hidden", backgroundColor: c.card }}>
       {uri ? (
@@ -180,7 +182,8 @@ export function FitImage({ uri, ratio = 1.5, radius = 0, onPress, label }: { uri
 }
 
 /** Photo pleine largeur à son format naturel (bornée), sans rognage. */
-export function NaturalImage({ uri, min = 0.8, max = 1.8, radius = 0 }: { uri?: string | null; min?: number; max?: number; radius?: number }) {
+export function NaturalImage({ uri: raw, min = 0.8, max = 1.8, radius = 0 }: { uri?: string | null; min?: number; max?: number; radius?: number }) {
+  const uri = absUrl(raw);
   const [ratio, setRatio] = useState(1.5);
   useEffect(() => {
     if (!uri) return;
