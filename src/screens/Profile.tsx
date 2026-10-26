@@ -31,7 +31,7 @@ export default function Profile() {
       {logged ? orders.map((o) => (
         <View key={o.order_id} style={{ borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, padding: 14, gap: 8 }}>
           <Text style={{ fontFamily: sansBold, fontSize: 16, color: c.text }}>{o.title}</Text>
-          <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>Code {o.access_code} · {o.devices.length}/{o.max} appareils</Text>
+          <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{o.devices.length}/{o.max} appareils · tous vos achats (albums et singles)</Text>
           {o.devices.map((d) => (
             <View key={d.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 }}>
               <Text style={{ fontFamily: sans, color: c.text, flex: 1 }}>{d.name}{d.current ? " (cet appareil)" : ""}</Text>
@@ -43,7 +43,7 @@ export default function Profile() {
       <Button ghost label={c.dark ? "Mode clair" : "Mode sombre"} onPress={toggle} />
       {logged ? <Button ghost label="Se déconnecter de cet appareil" onPress={async () => { await setToken(null); setOrders([]); setLogged(false); }} /> : null}
       <Body style={{ fontSize: 12, color: c.muted }}>Version {Application.nativeApplicationVersion ?? "dev"} (build {Application.nativeBuildVersion ?? "dev"}) · {API_URL.replace("https://", "")}</Body>
-      <Body style={{ fontSize: 12, color: c.muted }}>Chaque achat d'album fonctionne sur 2 appareils au maximum.</Body>
+      <Body style={{ fontSize: 12, color: c.muted }}>Votre compte fonctionne sur 2 appareils au maximum. Vos nouveaux achats apparaissent automatiquement dans « Ma musique ».</Body>
     </ScrollView>
   );
 }

@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { go } from "../nav";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, fetchLibrary, getToken, redeem, type LibAlbum } from "../api";
 import { usePlayer } from "../player";
@@ -29,13 +31,35 @@ export function CodeLogin({ onDone }: { onDone: () => void }) {
   );
 }
 
+type Filter = "all" | "album" | "single";
+
+function Folder({ a, onPress }: { a: LibAlbum; onPress: () => void }) {
+  const { c } = useTheme();
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir ${a.title}`} onPress={onPress} style={{ flex: 1 }}>
+      <View style={{ borderRadius: 16, overflow: "hidden", shadowColor: "#000", shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 6 }}>
+        <Cover uri={a.cover_url} size="100%" radius={16} label={`Pochette ${a.title}`} />
+        <View style={{ position: "absolute", right: 10, bottom: 10, width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(25,1,4,.78)", alignItems: "center", justifyContent: "center" }}>
+          <Ionicons name="play" size={15} color="#fff" />
+        </View>
+      </View>
+      <Text numberOfLines={2} style={{ fontFamily: sansBold, fontSize: 15, color: c.text, marginTop: 9 }}>{a.title}</Text>
+      <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 2 }}>{a.kind === "single" ? "Single" : "Album"} · {a.tracks.length} titre{a.tracks.length > 1 ? "s" : ""}</Text>
+    </Pressable>
+  );
+}
+
+const daysUntil = (iso: string | null) => (iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400e3)) : null);
+
 export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
+  void onOpenPlayer;
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const p = usePlayer();
   const [state, setState] = useState<"loading" | "login" | "ready">("loading");
   const [albums, setAlbums] = useState<LibAlbum[]>([]);
   const [err, setErr] = useState<string | null>(null);
+  const [filter, setFilter] = useState<Filter>("all");
 
   const load = useCallback(async () => {
     setErr(null);
@@ -45,43 +69,67 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
+  const list = albums.filter((a) => filter === "all" || (filter === "single" ? a.kind === "single" : a.kind !== "single"));
+  const soon = list.filter((a) => !a.released);
+  const ready = list.filter((a) => a.released);
+  const rows: LibAlbum[][] = [];
+  for (let i = 0; i < ready.length; i += 2) rows.push(ready.slice(i, i + 2));
+  const open = (a: LibAlbum) => go("Collection", { album: a });
+  const h = (t: string) => <Text style={{ fontFamily: serif, fontSize: 22, color: c.text, marginTop: 24, marginBottom: 12 }}>{t}</Text>;
+
   return (
-    <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 12 }}>
-      <View style={{ paddingHorizontal: 20, marginBottom: 12 }}><TopBar title="Ma musique" /></View>
+    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 140 }}
+      refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={c.rose} />}>
+      <TopBar title="Ma musique" />
       {state === "loading" ? <ActivityIndicator color={c.rose} style={{ marginTop: 40 }} /> : null}
-      {state === "login" ? <View style={{ paddingHorizontal: 20 }}><CodeLogin onDone={load} /></View> : null}
+      {state === "login" ? <View style={{ marginTop: 16 }}><CodeLogin onDone={load} /></View> : null}
       {state === "ready" ? (
-        <FlatList
-          data={albums} keyExtractor={(a) => a.order_id} contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 24, gap: 24 }}
-          ListHeaderComponent={err || p.error ? <Banner text={(err ?? p.error)!} /> : undefined}
-          ListEmptyComponent={<Body>Aucun album pour le moment.</Body>}
-          renderItem={({ item: a }) => (
-            <View>
-              <View style={{ flexDirection: "row", gap: 14, alignItems: "center" }}>
-                <Cover uri={a.cover_url} size={92} label={`Pochette ${a.title}`} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>{a.title}</Text>
-                  <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted, marginTop: 2 }}>
-                    {a.released ? `${a.tracks.length} titres` : a.release_date ? `Disponible le ${fmtDate(a.release_date)}` : "Bientôt disponible"}
-                  </Text>
-                </View>
+        <>
+          {err || p.error ? <View style={{ marginTop: 12 }}><Banner text={(err ?? p.error)!} /></View> : null}
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 16 }}>
+            {([["all", "Tout"], ["album", "Albums"], ["single", "Singles"]] as const).map(([k, l]) => (
+              <Pressable key={k} accessibilityRole="button" accessibilityState={{ selected: filter === k }} onPress={() => setFilter(k)}
+                style={{ height: 40, paddingHorizontal: 18, borderRadius: 20, justifyContent: "center", borderWidth: 1, borderColor: filter === k ? c.rose : c.line, backgroundColor: filter === k ? c.rose : "transparent" }}>
+                <Text style={{ fontFamily: sansBold, fontSize: 13, color: filter === k ? c.onRose : c.text }}>{l}</Text>
+              </Pressable>
+            ))}
+          </View>
+
+          {soon.length ? (
+            <>
+              {h("À venir")}
+              <View style={{ gap: 12 }}>
+                {soon.map((a) => {
+                  const d = daysUntil(a.release_date);
+                  return (
+                    <Pressable key={a.album_id} accessibilityRole="button" onPress={() => open(a)} style={{ flexDirection: "row", gap: 14, alignItems: "center", padding: 12, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+                      <View style={{ opacity: 0.8 }}><Cover uri={a.cover_url} size={88} radius={12} /></View>
+                      <View style={{ flex: 1, gap: 4 }}>
+                        <Text style={{ alignSelf: "flex-start", backgroundColor: c.gold, color: "#190104", fontFamily: sansBold, fontSize: 10, letterSpacing: 1.4, textTransform: "uppercase", paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10, overflow: "hidden" }}>Précommande</Text>
+                        <Text numberOfLines={2} style={{ fontFamily: sansBold, fontSize: 17, color: c.text }}>{a.title}</Text>
+                        <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>
+                          {d === null ? "Bientôt disponible" : d <= 1 ? "Disponible demain" : `Disponible dans ${d} jours`}{a.release_date ? ` · ${fmtDate(a.release_date)}` : ""}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
               </View>
-              {a.tracks.map((t, i) => {
-                const active = p.now?.album.album_id === a.album_id && p.now.index === i;
-                return (
-                  <Pressable key={t.id} accessibilityRole="button" accessibilityLabel={`Écouter ${t.title}`} disabled={!t.available}
-                    onPress={async () => { await p.play(a, i); onOpenPlayer(); }}
-                    style={{ minHeight: 52, flexDirection: "row", alignItems: "center", gap: 12, borderBottomWidth: 1, borderBottomColor: c.line, opacity: t.available ? 1 : 0.45 }}>
-                    <Text style={{ width: 24, textAlign: "right", fontFamily: sans, color: c.muted }}>{String(t.position).padStart(2, "0")}</Text>
-                    <Text style={{ flex: 1, fontFamily: active ? sansBold : sans, fontSize: 16, color: active ? c.gold : c.text }}>{t.title}</Text>
-                    <Text style={{ color: c.pink, fontSize: 16 }}>{active && p.playing ? "❚❚" : t.available ? "▶" : "🔒"}</Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          )}
-        />
+            </>
+          ) : null}
+
+          {h("Ma collection")}
+          {!ready.length ? <Body>{albums.length ? "Rien dans cette catégorie pour le moment." : "Aucun album pour le moment."}</Body> : null}
+          <View style={{ gap: 20 }}>
+            {rows.map((r, i) => (
+              <View key={i} style={{ flexDirection: "row", gap: 16 }}>
+                {r.map((a) => <Folder key={a.album_id} a={a} onPress={() => open(a)} />)}
+                {r.length === 1 ? <View style={{ flex: 1 }} /> : null}
+              </View>
+            ))}
+          </View>
+        </>
       ) : null}
-    </View>
+    </ScrollView>
   );
 }
