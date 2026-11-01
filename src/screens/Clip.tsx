@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Modal, Platform, Pressable, StatusBar, Text, View, useWindowDimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { usePreventScreenCapture } from "expo-screen-capture";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -11,14 +12,72 @@ import { sans, serif, useTheme } from "../theme";
 
 type Src = { uri: string; headers: Record<string, string> };
 
+function RoundBtn({ icon, onPress, label }: { icon: keyof typeof Ionicons.glyphMap; onPress: () => void; label: string }) {
+  return (
+    <Pressable onPress={onPress} accessibilityLabel={label} hitSlop={6}
+      style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: "rgba(0,0,0,0.45)", alignItems: "center", justifyContent: "center", marginLeft: 8 }}>
+      <Ionicons name={icon} size={20} color="#fff" />
+    </Pressable>
+  );
+}
+
+/** Lecteur : pause / lecture et barre de progression (contrôles natifs), ±10 s et plein écran (filigrane conservé). */
 function Video({ src, wm }: { src: Src; wm: string }) {
   const player = useVideoPlayer({ uri: src.uri, headers: src.headers }, (p) => { p.loop = false; p.play(); });
-  return (
-    <View style={{ width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000" }}>
-      <VideoView player={player} nativeControls fullscreenOptions={{ enable: false }} contentFit="contain" style={{ width: "100%", height: "100%" }} />
-      <Watermark text={wm} />
+  const [full, setFull] = useState(false);
+  const box = useRef<unknown>(null);
+  const win = useWindowDimensions();
+  const isWeb = Platform.OS === "web";
+
+  // Sur le web : plein écran du conteneur (le filigrane reste par-dessus la vidéo)
+  useEffect(() => {
+    if (!isWeb || typeof document === "undefined") return;
+    const onChange = () => { if (!document.fullscreenElement) setFull(false); };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, [isWeb]);
+
+  const toggleFull = () => {
+    if (isWeb && typeof document !== "undefined") {
+      const el = box.current as unknown as HTMLElement | null;
+      if (document.fullscreenElement) document.exitFullscreen?.();
+      else { el?.requestFullscreen?.(); setFull(true); }
+      return;
+    }
+    setFull((v) => !v);
+  };
+
+  const controls = (
+    <View style={{ position: "absolute", right: 8, top: 8, flexDirection: "row" }} pointerEvents="box-none">
+      <RoundBtn icon="play-back" label="Reculer de 10 secondes" onPress={() => player.seekBy(-10)} />
+      <RoundBtn icon="play-forward" label="Avancer de 10 secondes" onPress={() => player.seekBy(10)} />
+      <RoundBtn icon={full ? "contract" : "expand"} label={full ? "Quitter le plein écran" : "Plein écran"} onPress={toggleFull} />
     </View>
   );
+
+  const view = (style: object) => (
+    <View ref={box as never} style={[{ backgroundColor: "#000" }, style]}>
+      <VideoView player={player} nativeControls fullscreenOptions={{ enable: false }} contentFit="contain" style={{ width: "100%", height: "100%" }} />
+      <Watermark text={wm} />
+      {controls}
+    </View>
+  );
+
+  // Mobile : plein écran = vidéo tournée en paysage dans une fenêtre qui couvre tout l'écran
+  if (!isWeb && full) {
+    return (
+      <>
+        <View style={{ width: "100%", aspectRatio: 16 / 9, backgroundColor: "#000" }} />
+        <Modal visible animationType="fade" statusBarTranslucent onRequestClose={() => setFull(false)}>
+          <StatusBar hidden />
+          <View style={{ flex: 1, backgroundColor: "#000", alignItems: "center", justifyContent: "center" }}>
+            {view({ width: win.height, height: win.width, transform: [{ rotate: "90deg" }] })}
+          </View>
+        </Modal>
+      </>
+    );
+  }
+  return view({ width: "100%", aspectRatio: 16 / 9 });
 }
 
 /** Lecture d'un clip vidéo exclusif acheté (flux protégé, captures d'écran bloquées). */
