@@ -57,7 +57,7 @@ function TicketCard({ t, i, total, st, orderId }: { t: { code: string; type_name
 }
 
 /** Après la commande : ouvre la page de paiement PayDunya, surveille le paiement, puis confirme dans l'application. */
-export default function PayFlow({ kind, placed, method, mode, onRetry }: { kind: Kind; placed: Placed; method: PayMethod; mode?: "digital" | "delivery"; onRetry: () => void }) {
+export default function PayFlow({ kind, noun = "album", placed, method, mode, onRetry }: { kind: Kind; noun?: "album" | "single" | "clip"; placed: Placed; method: PayMethod; mode?: "digital" | "delivery"; onRetry: () => void }) {
   const { c } = useTheme();
   const [st, setSt] = useState<State>({ status: placed.next === "delivery" ? "delivery" : "pending" });
   const [err, setErr] = useState<string | null>(null);
@@ -135,7 +135,7 @@ export default function PayFlow({ kind, placed, method, mode, onRetry }: { kind:
           <Body>Paiement reçu, merci ! Nous vous contactons pour la livraison de votre CD.</Body>
         ) : (
           <>
-            <Body>Votre album est prêt. Un e-mail avec votre code d'accès a aussi été envoyé à {st.email}.</Body>
+            <Body>{noun === "clip" ? "Votre clip est prêt." : noun === "single" ? "Votre single est prêt." : "Votre album est prêt."} Un e-mail avec votre code d'accès a aussi été envoyé à {st.email}.</Body>
             {st.accessCode ? (
               <View style={{ gap: 10, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: c.gold, alignItems: "center" }}>
                 <Text style={{ fontFamily: sans, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", color: c.muted }}>Votre code d'accès</Text>
@@ -143,9 +143,9 @@ export default function PayFlow({ kind, placed, method, mode, onRetry }: { kind:
                 <Button ghost label={copied ? "Code copié ✓" : "Copier le code"} onPress={() => { void Clipboard.setStringAsync(st.accessCode!).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2500); }).catch(() => {}); }} style={{ minHeight: 44, alignSelf: "stretch" }} />
               </View>
             ) : null}
-            {added === true ? <Banner kind="info" text="L'album a été ajouté à « Ma musique »." /> : null}
+            {added === true ? <Banner kind="info" text={noun === "clip" ? "Le clip a été ajouté à votre dossier « Mes clips »." : "L'album a été ajouté à « Ma musique »."} /> : null}
             {added === false && !st.accessCode ? <Banner text="Entrez le code reçu par e-mail dans « Ma musique »." kind="info" /> : null}
-            <Button label="Écouter dans Ma musique" onPress={() => goTab("Ma musique")} />
+            <Button label={noun === "clip" ? "Voir dans Mes clips" : "Écouter dans Ma musique"} onPress={() => goTab("Ma musique")} />
           </>
         )}
       </View>

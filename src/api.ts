@@ -111,7 +111,7 @@ export type EventSale = {
 export type AlbumSale = {
   simulation: boolean; released: boolean;
   item: { id: string; title: string; description: string | null; poster_url: string | null; starts_at: string; currency: string; slug?: string | null };
-  album: { id: string; cover_url: string | null; presentation?: string | null; listen_url: string | null; digital_enabled: boolean; price_digital: number; physical_enabled: boolean; price_physical: number | null; physical_left: number | null };
+  album: { id: string; kind?: "album" | "single" | "clip"; cover_url: string | null; presentation?: string | null; listen_url: string | null; digital_enabled: boolean; price_digital: number; physical_enabled: boolean; price_physical: number | null; physical_left: number | null };
   tracks: { id: string; position: number; title: string; preview_url?: string | null }[];
 };
 export type Placed = { orderId: string; next: "delivery" | "simulation" | "redirect"; url?: string; k?: string | null };

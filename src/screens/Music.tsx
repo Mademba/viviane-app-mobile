@@ -32,7 +32,7 @@ export function CodeLogin({ onDone }: { onDone: () => void }) {
   );
 }
 
-type Filter = "all" | "album" | "single" | "clip";
+type Filter = "all" | "album" | "single";
 const KIND: Record<string, string> = { album: "Album", single: "Single", clip: "Clip vidéo" };
 
 function Folder({ a, onPress }: { a: LibAlbum; onPress: () => void }) {
@@ -51,6 +51,28 @@ function Folder({ a, onPress }: { a: LibAlbum; onPress: () => void }) {
   );
 }
 
+function ClipFolder({ clips, onPress }: { clips: LibAlbum[]; onPress: () => void }) {
+  const { c } = useTheme();
+  const n = clips.length;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir le dossier Mes clips (${n})`} onPress={onPress}
+      style={{ flexDirection: "row", alignItems: "center", gap: 16, padding: 14, marginBottom: 20, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+      <View style={{ width: 92, height: 72 }}>
+        {clips.slice(0, 3).map((a, i) => (
+          <View key={a.album_id} style={{ position: "absolute", left: i * 14, top: (2 - Math.min(i, 2)) * 0, width: 64, height: 64, borderRadius: 10, overflow: "hidden", borderWidth: 2, borderColor: c.card, zIndex: 3 - i, transform: [{ translateY: i * 3 }] }}>
+            <Cover uri={a.cover_url} size="fill" radius={0} />
+          </View>
+        ))}
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontFamily: sansBold, fontSize: 17, color: c.text }}>Mes clips</Text>
+        <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted, marginTop: 2 }}>{n} clip{n > 1 ? "s" : ""} vidéo exclusif{n > 1 ? "s" : ""}</Text>
+      </View>
+      <Ionicons name="folder-open-outline" size={24} color={c.gold} />
+    </Pressable>
+  );
+}
+
 const daysUntil = (iso: string | null) => (iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - Date.now()) / 86400e3)) : null);
 
 export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
@@ -63,6 +85,7 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
   const [albums, setAlbums] = useState<LibAlbum[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
+  const [inClips, setInClips] = useState(false);
 
   const load = useCallback(async () => {
     setErr(null);
@@ -72,11 +95,14 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  const list = albums.filter((a) => filter === "all" || (a.kind ?? "album") === filter);
+  const clips = albums.filter((a) => a.kind === "clip");
+  const others = albums.filter((a) => a.kind !== "clip");
+  const list = (inClips ? clips : others).filter((a) => inClips || filter === "all" || (a.kind ?? "album") === filter);
   const soon = list.filter((a) => !a.released);
   const ready = list.filter((a) => a.released);
   const rows: LibAlbum[][] = [];
   for (let i = 0; i < ready.length; i += 2) rows.push(ready.slice(i, i + 2));
+  const showClipFolder = !inClips && clips.length > 0 && filter === "all";
   const open = (a: LibAlbum) => go("Collection", { album: a });
   const h = (t: string) => <Text style={{ fontFamily: serif, fontSize: 22, color: c.text, marginTop: 24, marginBottom: 12 }}>{t}</Text>;
 
@@ -89,14 +115,20 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
       {state === "ready" ? (
         <>
           {err || p.error ? <View style={{ marginTop: 12 }}><Banner text={(err ?? p.error)!} /></View> : null}
-          <View style={{ flexDirection: "row", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-            {([["all", "Tout"], ["album", "Albums"], ["single", "Singles"], ["clip", "Clips"]] as const).map(([k, l]) => (
+          {inClips ? (
+            <Pressable accessibilityRole="button" onPress={() => setInClips(false)} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, marginTop: 8 }}>
+              <Ionicons name="chevron-back" size={20} color={c.gold} />
+              <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>Ma collection</Text>
+            </Pressable>
+          ) : null}
+          {!inClips ? <View style={{ flexDirection: "row", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+            {([["all", "Tout"], ["album", "Albums"], ["single", "Singles"]] as const).map(([k, l]) => (
               <Pressable key={k} accessibilityRole="button" accessibilityState={{ selected: filter === k }} onPress={() => setFilter(k)}
                 style={{ height: 40, paddingHorizontal: 15, borderRadius: 20, justifyContent: "center", borderWidth: 1, borderColor: filter === k ? c.rose : c.line, backgroundColor: filter === k ? c.rose : "transparent" }}>
                 <Text style={{ fontFamily: sansBold, fontSize: 13, color: filter === k ? c.onRose : c.text }}>{l}</Text>
               </Pressable>
             ))}
-          </View>
+          </View> : null}
 
           {soon.length ? (
             <>
@@ -121,8 +153,9 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
             </>
           ) : null}
 
-          {h("Ma collection")}
-          {!ready.length ? <Body>{albums.length ? "Rien dans cette catégorie pour le moment." : "Aucun album pour le moment."}</Body> : null}
+          {h(inClips ? "Mes clips" : "Ma collection")}
+          {showClipFolder ? <ClipFolder clips={clips} onPress={() => setInClips(true)} /> : null}
+          {!ready.length && !showClipFolder ? <Body>{albums.length ? "Rien dans cette catégorie pour le moment." : "Aucun album pour le moment."}</Body> : null}
           <View style={{ gap: 20 }}>
             {rows.map((r, i) => (
               <View key={i} style={{ flexDirection: "row", gap: 16 }}>

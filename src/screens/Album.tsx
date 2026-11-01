@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchAlbumSale, placeAlbumOrder, type AlbumSale, type PayMethod, type Placed } from "../api";
 import PayFlow from "./PayFlow";
+import VideoPreview from "../VideoPreview";
 import { BackBar, Banner, Body, Button, Field, NaturalImage, PayPicker, fmtDate, money, validEmail } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
@@ -41,7 +42,10 @@ export default function Album({ route, navigation }: { route: { params: { id: st
 
   const a = sale?.album;
   const cur = sale?.item.currency ?? "XOF";
-  const canDelivery = !!a && a.physical_enabled && a.price_physical !== null && (a.physical_left === null || a.physical_left > 0);
+  const isClip = a?.kind === "clip";
+  const isSingle = a?.kind === "single";
+  const noun = isClip ? "clip" : isSingle ? "single" : "album";
+  const canDelivery = !isClip && !!a && a.physical_enabled && a.price_physical !== null && (a.physical_left === null || a.physical_left > 0);
   const canDigital = !!a?.digital_enabled;
   const unit = mode === "digital" ? (a?.price_digital ?? 0) : (a?.price_physical ?? 0);
   const q = mode === "digital" ? 1 : qty;
@@ -67,11 +71,11 @@ export default function Album({ route, navigation }: { route: { params: { id: st
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 150 }} keyboardShouldPersistTaps="handled">
         <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 10 }}><BackBar onBack={navigation.goBack} label="Album" /></View>
-        <NaturalImage uri={a?.cover_url ?? sale?.item.poster_url} min={0.7} max={1.2} />
+        <NaturalImage uri={a?.cover_url ?? sale?.item.poster_url} min={isClip ? 1.2 : 0.7} max={isClip ? 1.9 : 1.2} />
         {sale ? (
           <View style={{ paddingHorizontal: 22, paddingTop: 22, paddingBottom: 6 }}>
             {pre ? <Text style={{ alignSelf: "flex-start", backgroundColor: c.rose, color: "#fff", fontFamily: sansBold, fontSize: 11, letterSpacing: 1.6, textTransform: "uppercase", paddingHorizontal: 12, paddingVertical: 5, borderRadius: 12, overflow: "hidden", marginBottom: 10 }}>Précommande</Text> : null}
-            <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2.4, textTransform: "uppercase", color: c.gold }}>Viviane Chidid</Text>
+            <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2.4, textTransform: "uppercase", color: c.gold }}>{isClip ? "Clip vidéo exclusif" : isSingle ? "Single · Viviane Chidid" : "Viviane Chidid"}</Text>
             <Text style={{ fontFamily: serif, fontSize: 40, color: c.text, lineHeight: 42, marginTop: 8 }}>{sale.item.title}</Text>
             <Text style={{ fontFamily: sans, fontSize: 15, color: c.soft, marginTop: 8 }}>{pre ? "Sortie le " : "Sorti le "}{fmtDate(sale.item.starts_at, true)}</Text>
             <View style={{ height: 3, width: 48, borderRadius: 2, backgroundColor: c.rose, marginTop: 18 }} />
@@ -83,7 +87,15 @@ export default function Album({ route, navigation }: { route: { params: { id: st
           {err && !placed ? <Banner text={err} /> : null}
           {intro ? <Body>{intro}</Body> : null}
 
-          {sale && sale.tracks.length ? (
+          {sale && isClip ? (
+            <View style={{ gap: 10 }}>
+              <Text style={{ fontFamily: serif, fontSize: 22, color: c.text }}>Aperçu</Text>
+              {sale.tracks.find((t) => t.preview_url)?.preview_url ? <VideoPreview uri={sale.tracks.find((t) => t.preview_url)!.preview_url!} /> : <Body>{pre ? "L'extrait sera bientôt disponible." : "Aucun extrait disponible."}</Body>}
+              <Body style={{ fontSize: 13 }}>Clip à regarder uniquement dans l'application, avec votre code d'accès (2 appareils). Contenu protégé : captures d'écran désactivées.</Body>
+            </View>
+          ) : null}
+
+          {sale && !isClip && sale.tracks.length ? (
             <View>
               <Text style={{ fontFamily: serif, fontSize: 22, color: c.text, marginBottom: 4 }}>Tracklist</Text>
               {sale.tracks.map((t) => (
@@ -105,9 +117,9 @@ export default function Album({ route, navigation }: { route: { params: { id: st
           {sale && !placed ? (
             <>
               <Text style={{ fontFamily: serif, fontSize: 22, color: c.text, marginTop: 6 }}>Choisir un format</Text>
-              {canDigital ? <Format on={mode === "digital"} onPress={() => setMode("digital")} title="Album numérique" sub="Dans l'application, avec un code d'accès" price={money(a!.price_digital, cur)} /> : null}
+              {canDigital ? <Format on={mode === "digital"} onPress={() => setMode("digital")} title={isClip ? "Clip vidéo exclusif" : isSingle ? "Single numérique" : "Album numérique"} sub={isClip ? "À regarder dans l'application, avec un code d'accès" : "Dans l'application, avec un code d'accès"} price={money(a!.price_digital, cur)} /> : null}
               {canDelivery ? <Format on={mode === "delivery"} onPress={() => setMode("delivery")} title="CD livré" sub={a!.physical_left !== null ? `Plus que ${a!.physical_left} exemplaire(s)` : "Livraison à votre adresse"} price={money(a!.price_physical!, cur)} /> : null}
-              {!canDigital && !canDelivery ? <Banner kind="info" text="Cet album n'est pas disponible à l'achat pour le moment." /> : null}
+              {!canDigital && !canDelivery ? <Banner kind="info" text={`Ce ${noun} n'est pas disponible à l'achat pour le moment.`} /> : null}
               {(canDigital || canDelivery) ? (
                 <>
                   {mode === "delivery" ? (
@@ -128,13 +140,13 @@ export default function Album({ route, navigation }: { route: { params: { id: st
               ) : null}
             </>
           ) : null}
-          {placed ? <PayFlow kind="album" placed={placed} method={method} mode={mode} onRetry={() => setPlaced(null)} /> : null}
+          {placed ? <PayFlow kind="album" noun={noun} placed={placed} method={method} mode={mode} onRetry={() => setPlaced(null)} /> : null}
         </View>
       </ScrollView>
       {sale && !placed && (canDigital || canDelivery) ? (
         <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, paddingHorizontal: 20, paddingTop: 12, paddingBottom: insets.bottom + 12, backgroundColor: c.bar, borderTopWidth: 1, borderTopColor: c.line, flexDirection: "row", alignItems: "center", gap: 14 }}>
           <View>
-            <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted }}>{mode === "digital" ? "Album numérique" : `CD × ${q}`}</Text>
+            <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted }}>{mode === "digital" ? (isClip ? "Clip vidéo" : isSingle ? "Single numérique" : "Album numérique") : `CD × ${q}`}</Text>
             <Text style={{ fontFamily: serif, fontSize: 22, color: c.text }}>{money(unit * q, cur)}</Text>
           </View>
           <Button label={busy ? "Patientez…" : pre ? "Précommander" : mode === "delivery" && !payNow ? "Commander" : "Acheter"} onPress={buy} disabled={busy} style={{ flex: 1, borderRadius: 12 }} />
