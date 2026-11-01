@@ -3,8 +3,8 @@ import { ScrollView, Text, View } from "react-native";
 import * as Application from "expo-application";
 import { API_URL } from "../config";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AuthError, fetchDevices, getToken, removeDevice, setToken, type DeviceOrder } from "../api";
-import { CodeLogin } from "./Music";
+import { AuthError, fetchDevices, getToken, logout, removeDevice, type DeviceOrder } from "../api";
+import { LoginPanel } from "./Login";
 import { Banner, Body, Button, TopBar } from "../ui";
 import { sans, sansBold, useTheme } from "../theme";
 
@@ -27,11 +27,12 @@ export default function Profile() {
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 32, gap: 16 }}>
       <TopBar title="Profil" />
       {err ? <Banner text={err} /> : null}
-      {logged === false ? <CodeLogin onDone={load} /> : null}
+      {logged === false ? <LoginPanel onDone={load} /> : null}
       {logged ? orders.map((o) => (
-        <View key={o.order_id} style={{ borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, padding: 14, gap: 8 }}>
+        <View key={o.order_id ?? "compte"} style={{ borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, padding: 14, gap: 8 }}>
           <Text style={{ fontFamily: sansBold, fontSize: 16, color: c.text }}>{o.title}</Text>
-          <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{o.devices.length}/{o.max} appareils · tous vos achats (albums et singles)</Text>
+          {o.email ? <Text style={{ fontFamily: sans, fontSize: 14, color: c.soft }}>{o.email}</Text> : null}
+          <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{o.devices.length}/{o.max} appareil · tous vos achats (albums, singles et clips)</Text>
           {o.devices.map((d) => (
             <View key={d.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: 44 }}>
               <Text style={{ fontFamily: sans, color: c.text, flex: 1 }}>{d.name}{d.current ? " (cet appareil)" : ""}</Text>
@@ -41,9 +42,9 @@ export default function Profile() {
         </View>
       )) : null}
       <Button ghost label={c.dark ? "Mode clair" : "Mode sombre"} onPress={toggle} />
-      {logged ? <Button ghost label="Se déconnecter de cet appareil" onPress={async () => { await setToken(null); setOrders([]); setLogged(false); }} /> : null}
+      {logged ? <Button ghost label="Se déconnecter" onPress={async () => { await logout(); setOrders([]); setLogged(false); }} /> : null}
       <Body style={{ fontSize: 12, color: c.muted }}>Version {Application.nativeApplicationVersion ?? "dev"} (build {Application.nativeBuildVersion ?? "dev"}) · {API_URL.replace("https://", "")}</Body>
-      <Body style={{ fontSize: 12, color: c.muted }}>Votre compte fonctionne sur 2 appareils au maximum. Vos nouveaux achats apparaissent automatiquement dans « Ma musique ».</Body>
+      <Body style={{ fontSize: 12, color: c.muted }}>Votre compte est lié à votre adresse e-mail et fonctionne sur un seul appareil à la fois. Vos nouveaux achats apparaissent automatiquement dans « Ma musique ».</Body>
     </ScrollView>
   );
 }

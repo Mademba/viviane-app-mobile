@@ -5,7 +5,7 @@ import { API_URL } from "./config";
 export type Track = { id: string; title: string; position: number; available: boolean };
 export type LibAlbum = { album_id: string; order_id: string; kind?: "album" | "single" | "clip"; fan?: string; title: string; cover_url: string | null; release_date: string | null; released: boolean; tracks: Track[] };
 export type DeviceInfo = { id: string; name: string; current: boolean; last_seen_at: string };
-export type DeviceOrder = { order_id: string; title: string; access_code: string; max: number; devices: DeviceInfo[] };
+export type DeviceOrder = { order_id: string | null; title: string; email?: string | null; access_code: string | null; max: number; devices: DeviceInfo[] };
 export type EventItem = {
   id: string; title: string; description: string | null; venue: string; city: string; starts_at: string;
   poster_url: string | null; ticket_price: number | null; currency: string; tickets_enabled: boolean; slug?: string | null;
@@ -50,6 +50,10 @@ async function deviceId() {
 }
 
 export class AuthError extends Error {}
+/** Erreur renvoyée par le site, avec son code (ex. device_limit) et les données associées. */
+export class ApiError extends Error {
+  constructor(message: string, public code?: string, public data?: Record<string, unknown>) { super(message); }
+}
 
 async function call<T>(path: string, init: RequestInit = {}, auth = true): Promise<T> {
   const headers: Record<string, string> = { "content-type": "application/json" };
@@ -68,7 +72,7 @@ async function call<T>(path: string, init: RequestInit = {}, auth = true): Promi
     await setToken(null);
     throw new AuthError(body.error ?? "Session expirée.");
   }
-  if (!res.ok || body.ok === false) throw new Error(body.error ?? "Une erreur est survenue.");
+  if (!res.ok || body.ok === false) throw new ApiError(body.error ?? "Une erreur est survenue.", body.code, body);
   return body as T;
 }
 
@@ -79,6 +83,24 @@ export async function redeem(code: string) {
     false,
   );
   await setToken(r.token);
+}
+/** Compte fan : envoi d'un code à 6 chiffres par e-mail (crée le compte au premier passage). */
+export const requestLoginCode = (email: string) =>
+  call("/api/app/login-request", { method: "POST", body: JSON.stringify({ email }) }, false);
+/** Vérifie le code ; `replace` déconnecte l'ancien appareil si le compte est déjà utilisé ailleurs (un seul appareil). */
+export async function verifyLoginCode(email: string, code: string, replace = false) {
+  const r = await call<{ token: string; new_account: boolean; purchases: number }>(
+    "/api/app/login-verify",
+    { method: "POST", body: JSON.stringify({ email, code, replace, device_id: await deviceId(), device_name: Device.modelName ?? Device.deviceName ?? "Appareil" }) },
+    false,
+  );
+  await setToken(r.token);
+  return { newAccount: r.new_account, purchases: r.purchases };
+}
+/** Déconnexion : libère la place de cet appareil sur le compte (le jeton local est supprimé dans tous les cas). */
+export async function logout() {
+  try { await call("/api/app/logout", { method: "POST", body: "{}" }); } catch { /* hors ligne : on se déconnecte quand même localement */ }
+  await setToken(null);
 }
 export const fetchLibrary = () => call<{ albums: LibAlbum[] }>("/api/app/library").then((r) => r.albums.map((a) => ({ ...a, cover_url: absUrl(a.cover_url) })));
 export const fetchDevices = () => call<{ orders: DeviceOrder[] }>("/api/app/devices").then((r) => r.orders);

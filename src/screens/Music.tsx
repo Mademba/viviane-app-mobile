@@ -1,36 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { go } from "../nav";
 import { usePreventScreenCapture } from "expo-screen-capture";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AuthError, fetchLibrary, getToken, redeem, type LibAlbum } from "../api";
+import { AuthError, fetchLibrary, getToken, type LibAlbum } from "../api";
+import { LoginPanel } from "./Login";
 import { usePlayer } from "../player";
 import { Banner, Body, Button, Cover, TopBar, fmtDate } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
-
-export function CodeLogin({ onDone }: { onDone: () => void }) {
-  const { c } = useTheme();
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const go = async () => {
-    setBusy(true); setErr(null);
-    try { await redeem(code); onDone(); } catch (e) { setErr(e instanceof Error ? e.message : "Erreur"); } finally { setBusy(false); }
-  };
-  return (
-    <View style={{ gap: 14 }}>
-      <Body>Entrez le code d'accès reçu par e-mail après votre achat pour retrouver vos albums.</Body>
-      <TextInput
-        value={code} onChangeText={(t) => setCode(t.toUpperCase())} autoCapitalize="characters" autoCorrect={false}
-        placeholder="XXXXX-XXXXX" placeholderTextColor={c.muted} accessibilityLabel="Code d'accès"
-        style={{ height: 56, borderRadius: 12, borderWidth: 1, borderColor: c.line, paddingHorizontal: 16, color: c.text, fontFamily: sansBold, fontSize: 18, letterSpacing: 2, backgroundColor: c.card }}
-      />
-      {err ? <Banner text={err} /> : null}
-      <Button label={busy ? "Vérification…" : "Accéder à ma musique"} onPress={go} disabled={busy || code.trim().length < 4} />
-    </View>
-  );
-}
 
 type Filter = "all" | "album" | "single";
 const KIND: Record<string, string> = { album: "Album", single: "Single", clip: "Clip vidéo" };
@@ -111,7 +89,7 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
       refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={c.rose} />}>
       <TopBar title="Ma musique" />
       {state === "loading" ? <ActivityIndicator color={c.rose} style={{ marginTop: 40 }} /> : null}
-      {state === "login" ? <View style={{ marginTop: 16 }}><CodeLogin onDone={load} /></View> : null}
+      {state === "login" ? <View style={{ marginTop: 16 }}><LoginPanel onDone={load} /></View> : null}
       {state === "ready" ? (
         <>
           {err || p.error ? <View style={{ marginTop: 12 }}><Banner text={(err ?? p.error)!} /></View> : null}
