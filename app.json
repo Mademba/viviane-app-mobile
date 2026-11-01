@@ -3,7 +3,7 @@
     "name": "Viviane Chidid",
     "slug": "viviane-chidid",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "vivianechidid",
@@ -20,6 +20,6 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "plugins": ["expo-secure-store", "expo-font"]
+    "plugins": ["expo-secure-store", "expo-font", ["expo-screen-orientation", { "initialOrientation": "PORTRAIT_UP" }]]
   }
 }
