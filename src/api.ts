@@ -102,6 +102,8 @@ export async function logout() {
   try { await call("/api/app/logout", { method: "POST", body: "{}" }); } catch { /* hors ligne : on se déconnecte quand même localement */ }
   await setToken(null);
 }
+/** Ajoute un achat (code d'accès reçu par e-mail) à la collection du compte connecté. */
+export const claimCode = (code: string) => call<{ title?: string; already?: boolean }>("/api/app/claim", { method: "POST", body: JSON.stringify({ code }) });
 export const fetchLibrary = () => call<{ albums: LibAlbum[] }>("/api/app/library").then((r) => r.albums.map((a) => ({ ...a, cover_url: absUrl(a.cover_url) })));
 export const fetchDevices = () => call<{ orders: DeviceOrder[] }>("/api/app/devices").then((r) => r.orders);
 export const removeDevice = (device: string) => call("/api/app/device-remove", { method: "POST", body: JSON.stringify({ device }) });

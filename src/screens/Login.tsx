@@ -1,32 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { ApiError, redeem, requestLoginCode, verifyLoginCode } from "../api";
+import { ApiError, requestLoginCode, verifyLoginCode } from "../api";
 import { Banner, Body, Button, Field, validEmail } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
-
-/** Connexion avec le code d'accès reçu après un achat (sans compte). */
-export function CodeLogin({ onDone }: { onDone: () => void }) {
-  const { c } = useTheme();
-  const [code, setCode] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const go = async () => {
-    setBusy(true); setErr(null);
-    try { await redeem(code); onDone(); } catch (e) { setErr(e instanceof Error ? e.message : "Erreur"); } finally { setBusy(false); }
-  };
-  return (
-    <View style={{ gap: 14 }}>
-      <Body>Entrez le code d'accès reçu par e-mail après votre achat.</Body>
-      <TextInput
-        value={code} onChangeText={(t) => setCode(t.toUpperCase())} autoCapitalize="characters" autoCorrect={false}
-        placeholder="XXXXX-XXXXX" placeholderTextColor={c.muted} accessibilityLabel="Code d'accès"
-        style={{ height: 56, borderRadius: 12, borderWidth: 1, borderColor: c.line, paddingHorizontal: 16, color: c.text, fontFamily: sansBold, fontSize: 18, letterSpacing: 2, backgroundColor: c.card }}
-      />
-      {err ? <Banner text={err} /> : null}
-      <Button label={busy ? "Vérification…" : "Accéder à ma musique"} onPress={go} disabled={busy || code.trim().length < 4} />
-    </View>
-  );
-}
 
 /** Compte fan : e-mail → code à 6 chiffres reçu par e-mail. Le premier passage crée le compte. */
 export function AccountLogin({ onDone }: { onDone: () => void }) {
@@ -106,20 +82,6 @@ export function AccountLogin({ onDone }: { onDone: () => void }) {
           <Button ghost label="Annuler" onPress={() => { setStep("code"); setErr(null); }} disabled={busy} />
         </>
       ) : null}
-    </View>
-  );
-}
-
-/** Écran de connexion : compte par e-mail en premier, code d'accès d'achat en alternative. */
-export function LoginPanel({ onDone }: { onDone: () => void }) {
-  const { c } = useTheme();
-  const [useCode, setUseCode] = useState(false);
-  return (
-    <View style={{ gap: 20 }}>
-      {useCode ? <CodeLogin onDone={onDone} /> : <AccountLogin onDone={onDone} />}
-      <Pressable accessibilityRole="button" onPress={() => setUseCode((v) => !v)} style={{ minHeight: 44, justifyContent: "center" }}>
-        <Text style={{ fontFamily: sansBold, fontSize: 13, color: c.pink, textAlign: "center" }}>{useCode ? "← Me connecter avec mon e-mail" : "J'ai un code d'accès reçu après un achat"}</Text>
-      </Pressable>
     </View>
   );
 }

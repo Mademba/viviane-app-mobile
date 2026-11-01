@@ -1,14 +1,68 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
-import { go } from "../nav";
+import { go, goTab } from "../nav";
 import { usePreventScreenCapture } from "expo-screen-capture";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { AuthError, fetchLibrary, getToken, type LibAlbum } from "../api";
-import { LoginPanel } from "./Login";
+import { AuthError, claimCode, fetchLibrary, getToken, type LibAlbum } from "../api";
 import { usePlayer } from "../player";
 import { Banner, Body, Button, Cover, TopBar, fmtDate } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
+
+/** Ajoute un nouvel achat à la collection avec son code d'accès (reçu par e-mail après le paiement). */
+function AddCode({ onAdded }: { onAdded: () => void }) {
+  const { c } = useTheme();
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+  const submit = async () => {
+    setBusy(true); setErr(null); setOk(null);
+    try {
+      const r = await claimCode(code);
+      setOk(r.already ? `« ${r.title ?? "Cet achat"} » est déjà dans votre collection.` : `« ${r.title ?? "Votre achat"} » a été ajouté à votre collection.`);
+      setCode(""); setOpen(false); onAdded();
+    } catch (e) { setErr(e instanceof Error ? e.message : "Erreur"); } finally { setBusy(false); }
+  };
+  return (
+    <View style={{ marginTop: 14, gap: 12 }}>
+      {ok ? <Banner kind="info" text={ok} /> : null}
+      {!open ? (
+        <Pressable accessibilityRole="button" onPress={() => { setOpen(true); setOk(null); }} style={{ minHeight: 50, borderRadius: 14, borderWidth: 1, borderColor: c.gold, borderStyle: "dashed", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+          <Ionicons name="add-circle-outline" size={20} color={c.gold} />
+          <Text style={{ fontFamily: sansBold, fontSize: 14, color: c.gold }}>Ajouter un achat avec un code</Text>
+        </Pressable>
+      ) : (
+        <View style={{ gap: 12, padding: 14, borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+          <Body>Entrez le code d'accès reçu par e-mail après votre achat : l'album, le single ou le clip sera ajouté à votre collection.</Body>
+          <TextInput
+            value={code} onChangeText={(t) => setCode(t.toUpperCase())} autoCapitalize="characters" autoCorrect={false}
+            placeholder="XXXXX-XXXXX" placeholderTextColor={c.muted} accessibilityLabel="Code d'accès"
+            style={{ height: 54, borderRadius: 12, borderWidth: 1, borderColor: c.line, paddingHorizontal: 16, color: c.text, fontFamily: sansBold, fontSize: 18, letterSpacing: 2, backgroundColor: c.bg }}
+          />
+          {err ? <Banner text={err} /> : null}
+          <Button label={busy ? "Vérification…" : "Ajouter à ma collection"} onPress={submit} disabled={busy || code.trim().length < 4} />
+          <Button ghost label="Annuler" onPress={() => { setOpen(false); setErr(null); }} disabled={busy} />
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** Visiteur non connecté : la connexion se fait dans l'onglet Profil. */
+function Guest() {
+  const { c } = useTheme();
+  return (
+    <View style={{ marginTop: 24, padding: 22, borderRadius: 20, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, gap: 14, alignItems: "flex-start" }}>
+      <Ionicons name="musical-notes-outline" size={34} color={c.gold} />
+      <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>Retrouvez vos achats</Text>
+      <Body>Connectez-vous à votre compte depuis votre profil avec l'adresse e-mail de vos achats : vos albums, singles et clips apparaissent ici. Vous restez connecté jusqu'à votre déconnexion.</Body>
+      <Button label="Aller à mon profil" onPress={() => goTab("Profil")} />
+    </View>
+  );
+}
 
 type Filter = "all" | "album" | "single";
 const KIND: Record<string, string> = { album: "Album", single: "Single", clip: "Clip vidéo" };
@@ -59,7 +113,7 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const p = usePlayer();
-  const [state, setState] = useState<"loading" | "login" | "ready">("loading");
+  const [state, setState] = useState<"loading" | "guest" | "ready">("loading");
   const [albums, setAlbums] = useState<LibAlbum[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
@@ -67,11 +121,12 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
 
   const load = useCallback(async () => {
     setErr(null);
-    if (!(await getToken())) return setState("login");
+    if (!(await getToken())) { setAlbums([]); return setState("guest"); }
     try { setAlbums(await fetchLibrary()); setState("ready"); }
-    catch (e) { if (e instanceof AuthError) setState("login"); else { setErr(e instanceof Error ? e.message : "Erreur"); setState("ready"); } }
+    catch (e) { if (e instanceof AuthError) { setAlbums([]); setState("guest"); } else { setErr(e instanceof Error ? e.message : "Erreur"); setState("ready"); } }
   }, []);
-  useEffect(() => { void load(); }, [load]);
+  // Rechargé à chaque fois que l'onglet est affiché (connexion ou achat fait depuis un autre onglet)
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
 
   const clips = albums.filter((a) => a.kind === "clip");
   const others = albums.filter((a) => a.kind !== "clip");
@@ -89,10 +144,11 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
       refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={c.rose} />}>
       <TopBar title="Ma musique" />
       {state === "loading" ? <ActivityIndicator color={c.rose} style={{ marginTop: 40 }} /> : null}
-      {state === "login" ? <View style={{ marginTop: 16 }}><LoginPanel onDone={load} /></View> : null}
+      {state === "guest" ? <Guest /> : null}
       {state === "ready" ? (
         <>
           {err || p.error ? <View style={{ marginTop: 12 }}><Banner text={(err ?? p.error)!} /></View> : null}
+          {!inClips ? <AddCode onAdded={load} /> : null}
           {inClips ? (
             <Pressable accessibilityRole="button" onPress={() => setInClips(false)} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, marginTop: 8 }}>
               <Ionicons name="chevron-back" size={20} color={c.gold} />

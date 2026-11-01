@@ -4,7 +4,7 @@ import * as Application from "expo-application";
 import { API_URL } from "../config";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, fetchDevices, getToken, logout, removeDevice, type DeviceOrder } from "../api";
-import { LoginPanel } from "./Login";
+import { AccountLogin } from "./Login";
 import { Banner, Body, Button, TopBar } from "../ui";
 import { sans, sansBold, useTheme } from "../theme";
 
@@ -27,7 +27,7 @@ export default function Profile() {
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 32, gap: 16 }}>
       <TopBar title="Profil" />
       {err ? <Banner text={err} /> : null}
-      {logged === false ? <LoginPanel onDone={load} /> : null}
+      {logged === false ? <AccountLogin onDone={load} /> : null}
       {logged ? orders.map((o) => (
         <View key={o.order_id ?? "compte"} style={{ borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, padding: 14, gap: 8 }}>
           <Text style={{ fontFamily: sansBold, fontSize: 16, color: c.text }}>{o.title}</Text>
