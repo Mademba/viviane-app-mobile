@@ -42,8 +42,9 @@ export default function Album({ route, navigation }: { route: { params: { id: st
 
   const a = sale?.album;
   const cur = sale?.item.currency ?? "XOF";
-  const isClip = a?.kind === "clip";
-  const isSingle = a?.kind === "single";
+  const isVideoUrl = (u?: string | null) => !!u && /\.(mp4|mov|m4v|webm)(\?|#|$)/i.test(u);
+  const isClip = a?.kind === "clip" || !!sale?.tracks.some((t) => isVideoUrl(t.preview_url));
+  const isSingle = !isClip && a?.kind === "single";
   const noun = isClip ? "clip" : isSingle ? "single" : "album";
   const canDelivery = !isClip && !!a && a.physical_enabled && a.price_physical !== null && (a.physical_left === null || a.physical_left > 0);
   const canDigital = !!a?.digital_enabled;

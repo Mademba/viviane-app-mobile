@@ -64,8 +64,6 @@ export function News() {
   );
 }
 
-const PAST_STEP = 4;
-
 export function Agenda() {
   const { c } = useTheme();
   const { data, err, busy, load } = useContent();
@@ -77,7 +75,11 @@ export function Agenda() {
   const past = all.filter((e) => new Date(e.starts_at).getTime() < limit).reverse();
   const featured = upcoming[0];
   const others = upcoming.slice(1);
-  const shown = showAll ? past : past.slice(0, PAST_STEP);
+  // Passés : l'année en cours reste affichée comme avant ; les années précédentes sont regroupées par année
+  const thisYear = new Date().getFullYear();
+  const pastNow = past.filter((e) => new Date(e.starts_at).getFullYear() >= thisYear);
+  const pastOld = past.filter((e) => new Date(e.starts_at).getFullYear() < thisYear);
+  const byYear = Object.entries(pastOld.reduce<Record<number, EventItem[]>>((acc, e) => { const y = new Date(e.starts_at).getFullYear(); (acc[y] ??= []).push(e); return acc; }, {})).sort((x, y) => Number(y[0]) - Number(x[0]));
 
   const row = (e: EventItem, isPast: boolean) => {
     const d = new Date(e.starts_at);
@@ -111,7 +113,7 @@ export function Agenda() {
         return (
           <View style={{ borderRadius: 22, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
             <View>
-              <FitImage uri={featured.poster_url} ratio={1.2} onPress={() => setPoster(featured.poster_url)} label="Agrandir l'affiche" />
+              <FitImage uri={featured.poster_url} ratio={1.75} onPress={() => setPoster(featured.poster_url)} label="Agrandir l'affiche" />
               <Text style={{ position: "absolute", left: 14, top: 14, backgroundColor: c.rose, color: "#fff", fontFamily: sansBold, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: "hidden" }}>À l'affiche</Text>
             </View>
             <View style={{ padding: 16, gap: 10 }}>
@@ -141,16 +143,28 @@ export function Agenda() {
       {others.length ? <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 6 }}>À venir</Text> : null}
       {others.map((e) => row(e, false))}
 
-      {past.length ? (
+      {pastNow.length ? (
         <>
-          <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 10 }}>Événements passés</Text>
-          {shown.map((e) => row(e, true))}
-          {past.length > PAST_STEP ? (
-            <Pressable accessibilityRole="button" onPress={() => setShowAll((v) => !v)} style={{ minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-              <Text style={{ fontFamily: sansBold, fontSize: 14, color: c.pink }}>{showAll ? "Réduire" : `Voir les ${past.length - PAST_STEP} autres`}</Text>
-              <Ionicons name={showAll ? "chevron-up" : "chevron-down"} size={18} color={c.pink} />
-            </Pressable>
-          ) : null}
+          <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 10 }}>Événements passés · {thisYear}</Text>
+          {pastNow.map((e) => row(e, true))}
+        </>
+      ) : null}
+      {pastOld.length ? (
+        <>
+          <Pressable accessibilityRole="button" onPress={() => setShowAll((v) => !v)} style={{ minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Text style={{ fontFamily: sansBold, fontSize: 14, color: c.pink }}>{showAll ? "Masquer les années précédentes" : `Voir les années précédentes (${pastOld.length})`}</Text>
+            <Ionicons name={showAll ? "chevron-up" : "chevron-down"} size={18} color={c.pink} />
+          </Pressable>
+          {showAll ? byYear.map(([y, list]) => (
+            <View key={y} style={{ gap: 12 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 8 }}>
+                <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>{y}</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: c.line }} />
+                <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted }}>{list.length} événement{list.length > 1 ? "s" : ""}</Text>
+              </View>
+              {list.map((e) => row(e, true))}
+            </View>
+          )) : null}
         </>
       ) : null}
       <Lightbox photos={poster ? [poster] : []} start={poster ? 0 : null} onClose={() => setPoster(null)} />

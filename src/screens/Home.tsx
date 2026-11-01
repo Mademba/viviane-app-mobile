@@ -147,7 +147,7 @@ export default function Home() {
         <>
           <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 32 }}>Prochain événement</Text>
           <View style={{ marginTop: 12, borderRadius: 18, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-            {nextEvent.poster_url ? <FitImage uri={nextEvent.poster_url} ratio={1.1} onPress={() => setPoster(nextEvent.poster_url)} label="Agrandir l'affiche" /> : null}
+            {nextEvent.poster_url ? <FitImage uri={nextEvent.poster_url} ratio={1.8} onPress={() => setPoster(nextEvent.poster_url)} label="Agrandir l'affiche" /> : null}
             <Pressable accessibilityRole="button" onPress={() => goTo("Agenda")} style={{ padding: 18, gap: 6 }}>
               <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>{fmtDate(nextEvent.starts_at, true)}</Text>
               <Text style={{ fontFamily: serif, fontSize: 26, lineHeight: 29, color: c.text }}>{nextEvent.title}</Text>
