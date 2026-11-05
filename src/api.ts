@@ -5,7 +5,7 @@ import { API_URL } from "./config";
 export type Track = { id: string; title: string; position: number; available: boolean };
 export type LibAlbum = { album_id: string; order_id: string; kind?: "album" | "single" | "clip"; fan?: string; title: string; cover_url: string | null; release_date: string | null; released: boolean; tracks: Track[] };
 export type DeviceInfo = { id: string; name: string; current: boolean; last_seen_at: string };
-export type DeviceOrder = { order_id: string | null; title: string; email?: string | null; access_code: string | null; max: number; devices: DeviceInfo[] };
+export type DeviceOrder = { order_id: string | null; title: string; email?: string | null; name?: string | null; access_code: string | null; max: number; devices: DeviceInfo[] };
 export type EventItem = {
   id: string; title: string; description: string | null; venue: string; city: string; starts_at: string;
   poster_url: string | null; ticket_price: number | null; currency: string; tickets_enabled: boolean; slug?: string | null;

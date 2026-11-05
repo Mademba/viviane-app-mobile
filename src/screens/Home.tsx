@@ -1,13 +1,13 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { API_URL } from "../config";
 import { go, goTab } from "../nav";
 import { openArticle, openTickets } from "./Feed";
-import type { Article } from "../api";
+import { fetchDevices, getToken, type Article } from "../api";
 import { useContent } from "../content";
 import { usePlayer } from "../player";
 import { Body, Button, Cover, FitImage, Lightbox, Eyebrow, ThemeButton, fmtDate, fmtTime, money, openLink } from "../ui";
@@ -64,19 +64,47 @@ function NewsCarousel({ items }: { items: Article[] }) {
   );
 }
 
+/** Compte à rebours en clair : « Ce soir », « Demain », « 9 jours »… */
+function countdown(iso: string): { big: string; small: string } {
+  const start = new Date(iso);
+  const now = new Date();
+  if (start.getTime() <= now.getTime() && start.getTime() >= now.getTime() - 6 * 3600e3) return { big: "Ce soir", small: "en cours" };
+  const days = Math.round((new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()) / 86400e3);
+  if (days <= 0) return { big: "Ce soir", small: "aujourd'hui" };
+  if (days === 1) return { big: "Demain", small: "" };
+  return { big: String(days), small: "jours" };
+}
+
+/** Fan connecté (e-mail et prénom) : sert à personnaliser l'accueil. */
+type Fan = { email: string; name: string | null } | null;
+
 export default function Home() {
-  const { height } = useWindowDimensions();
   const [poster, setPoster] = useState<string | null>(null);
+  const [fan, setFan] = useState<Fan>(null);
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const { data, busy, load, err } = useContent();
   const p = usePlayer();
   const st = data?.settings;
   const articles = data?.articles ?? [];
-  const release = articles.find((a) => a.is_album);
-  const news = articles.filter((a) => a !== release).slice(0, 8);
+  const releases = articles.filter((a) => a.is_album).slice(0, 4);
+  const news = articles.filter((a) => !a.is_album).slice(0, 8);
   const showBanner = Boolean(st && st.home_media_type !== "none" && st.home_media_url);
   const goTo = goTab;
+
+  // Compte connecté : relu à chaque retour sur l'accueil (connexion ou déconnexion faite dans Profil)
+  useFocusEffect(useCallback(() => {
+    let live = true;
+    (async () => {
+      if (!(await getToken())) { if (live) setFan(null); return; }
+      try {
+        const o = (await fetchDevices())[0];
+        if (live) setFan(o?.email ? { email: o.email, name: o.name ?? null } : null);
+      } catch { if (live) setFan(null); }
+    })();
+    return () => { live = false; };
+  }, []));
+
   const bannerGo = () => {
     if (!st) return;
     if (st.home_button_target === "url" && st.home_button_url) void openLink(/^https?:/i.test(st.home_button_url) ? st.home_button_url : `${API_URL}${st.home_button_url.startsWith("/") ? "" : "/"}${st.home_button_url}`);
@@ -88,29 +116,58 @@ export default function Home() {
   const last = p.last;
   const lastTrack = last?.album.tracks[last.index];
   const pct = last && last.duration > 0 ? Math.min(1, last.position / last.duration) : 0;
+  const initial = (fan?.name ?? fan?.email ?? "").trim().charAt(0).toUpperCase();
+  const cd = nextEvent ? countdown(nextEvent.starts_at) : null;
+  const gridW = "48%";
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 32 }}
       refreshControl={<RefreshControl refreshing={busy} onRefresh={load} tintColor={c.rose} />}>
+      {/* En-tête personnalisé */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <View>
-          <Eyebrow>Viviane Chidid</Eyebrow>
-          <Text style={{ fontFamily: serif, fontSize: 30, color: c.text, marginTop: 6 }}>Accueil</Text>
+        <View style={{ flex: 1, paddingRight: 12 }}>
+          <Eyebrow>{fan ? "Content de vous revoir" : "Viviane Chidid"}</Eyebrow>
+          <Text numberOfLines={1} style={{ fontFamily: serif, fontSize: 30, color: c.text, marginTop: 6 }}>{fan ? (fan.name ?? "Bonjour") : "Bienvenue"}</Text>
         </View>
-        <View style={{ flexDirection: "row", gap: 8 }}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Voir les actualités" onPress={() => goTo("Actualités")}
-            style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}>
-            <Ionicons name="notifications-outline" size={20} color={c.text} />
-          </Pressable>
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
           <ThemeButton />
+          <Pressable accessibilityRole="button" accessibilityLabel={fan ? "Mon profil" : "Me connecter"} onPress={() => goTo("Profil")}
+            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: fan ? c.rose : "transparent", borderWidth: fan ? 0 : 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}>
+            {fan && initial ? <Text style={{ fontFamily: sansBold, fontSize: 18, color: "#fff" }}>{initial}</Text> : <Ionicons name="person-outline" size={20} color={c.text} />}
+          </Pressable>
         </View>
       </View>
 
       {err && !data ? <Text style={{ fontFamily: sans, color: c.pink, marginTop: 16 }}>{err}</Text> : null}
 
+      {/* Reprendre l'écoute (fan) ou invitation à se connecter (visiteur) */}
+      {last && lastTrack ? (
+        <View style={{ marginTop: 20, flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+          <Cover uri={last.album.cover_url} size={68} radius={12} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>Reprendre l'écoute</Text>
+            <Text numberOfLines={1} style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 3 }}>{lastTrack.title}</Text>
+            <Text numberOfLines={1} style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 2 }}>{last.album.title} · {fmtTime(last.position)} sur {fmtTime(last.duration)}</Text>
+            <View style={{ marginTop: 8, height: 3, borderRadius: 2, backgroundColor: c.line }}><View style={{ width: `${pct * 100}%`, height: 3, borderRadius: 2, backgroundColor: c.gold }} /></View>
+          </View>
+          <Pressable accessibilityRole="button" accessibilityLabel="Reprendre la lecture" onPress={() => void p.resume()} style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: c.rose, alignItems: "center", justifyContent: "center" }}>
+            <Ionicons name="play" size={18} color="#fff" />
+          </Pressable>
+        </View>
+      ) : !fan ? (
+        <Pressable accessibilityRole="button" onPress={() => goTo("Profil")} style={{ marginTop: 20, flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+          <Ionicons name="musical-notes-outline" size={26} color={c.gold} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontFamily: sansBold, fontSize: 15, color: c.text }}>Retrouvez vos achats</Text>
+            <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted, marginTop: 2 }}>Connectez-vous avec votre e-mail pour écouter votre musique.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={c.muted} />
+        </Pressable>
+      ) : null}
+
       {showBanner ? (
-        <View style={{ marginTop: 22, borderRadius: 18, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-          <View style={{ aspectRatio: 4 / 3 }}>
+        <View style={{ marginTop: 20, borderRadius: 18, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+          <View style={{ aspectRatio: 16 / 10 }}>
             {st!.home_media_type === "video" ? <BannerVideo uri={st!.home_media_url!} /> : <Cover uri={st!.home_media_url} size="100%" radius={0} />}
           </View>
           {st!.home_title || st!.home_text || (st!.home_button_label && st!.home_button_target !== "none") ? (
@@ -123,55 +180,40 @@ export default function Home() {
         </View>
       ) : null}
 
-      {release ? (
-        <View style={{ marginTop: 22, height: Math.max(360, Math.round(height * 0.5)), borderRadius: 22, overflow: "hidden", backgroundColor: c.card }}>
-          <View style={{ position: "absolute", inset: 0 } as never}><Cover uri={release.cover_url} size="100%" radius={0} /></View>
-          <LinearGradient colors={["rgba(25,1,4,0)", "rgba(25,1,4,.88)"]} locations={[0.35, 1]} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
-          <View style={{ flex: 1, padding: 20, justifyContent: "flex-end" }}>
-            <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 2.6, textTransform: "uppercase", color: "#e3ad4b" }}>Dernière sortie</Text>
-            <Text numberOfLines={2} style={{ fontFamily: serif, fontSize: 40, lineHeight: 42, color: "#fff0ef", marginTop: 8 }}>{release.title}</Text>
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
-              <Pressable accessibilityRole="button" onPress={() => goTo("Ma musique")} style={{ height: 50, paddingHorizontal: 24, borderRadius: 25, backgroundColor: c.rose, flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Ionicons name="play" size={16} color="#fff" />
-                <Text style={{ fontFamily: sansBold, fontSize: 13, letterSpacing: 1.3, textTransform: "uppercase", color: "#fff" }}>Écouter</Text>
-              </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => openArticle(release)} style={{ height: 50, paddingHorizontal: 22, borderRadius: 25, borderWidth: 1, borderColor: "rgba(255,240,239,.55)", justifyContent: "center" }}>
-                <Text style={{ fontFamily: sansBold, fontSize: 13, letterSpacing: 1.3, textTransform: "uppercase", color: "#fff0ef" }}>Détails</Text>
-              </Pressable>
+      {/* Prochain événement : compte à rebours, infos lisibles, bouton d'achat */}
+      {nextEvent && cd ? (
+        <View style={{ marginTop: 20, borderRadius: 18, backgroundColor: c.card, borderWidth: 1, borderColor: c.gold, padding: 16, gap: 14 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
+            <View style={{ minWidth: 64, alignItems: "center" }}>
+              <Text style={{ fontFamily: serif, fontSize: cd.big.length > 4 ? 22 : 38, lineHeight: 42, color: c.gold }}>{cd.big}</Text>
+              {cd.small ? <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>{cd.small}</Text> : null}
             </View>
+            <Pressable accessibilityRole="button" onPress={() => goTo("Agenda")} style={{ flex: 1, borderLeftWidth: 1, borderLeftColor: c.line, paddingLeft: 14, gap: 3 }}>
+              <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>Prochain événement</Text>
+              <Text numberOfLines={2} style={{ fontFamily: serif, fontSize: 22, lineHeight: 25, color: c.text }}>{nextEvent.title}</Text>
+              <Text style={{ fontFamily: sans, fontSize: 13, color: c.soft }}>{fmtDate(nextEvent.starts_at, true)}</Text>
+              <Text numberOfLines={1} style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{nextEvent.venue}, {nextEvent.city}{nextEvent.ticket_price ? ` · dès ${money(nextEvent.ticket_price, nextEvent.currency)}` : ""}</Text>
+            </Pressable>
+          </View>
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            {nextEvent.tickets_enabled ? <View style={{ flex: 1 }}><Button label="Acheter un ticket" onPress={() => openTickets(nextEvent)} /></View> : <View style={{ flex: 1 }}><Button label="Voir l'agenda" onPress={() => goTo("Agenda")} /></View>}
+            {nextEvent.poster_url ? <Button ghost label="Affiche" onPress={() => setPoster(nextEvent.poster_url)} /> : null}
           </View>
         </View>
       ) : null}
 
-      {nextEvent ? (
+      {/* À découvrir : dernières sorties (albums, singles, clips) */}
+      {releases.length ? (
         <>
-          <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 32 }}>Prochain événement</Text>
-          <View style={{ marginTop: 12, borderRadius: 18, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-            {nextEvent.poster_url ? <FitImage uri={nextEvent.poster_url} ratio={1.8} onPress={() => setPoster(nextEvent.poster_url)} label="Agrandir l'affiche" /> : null}
-            <Pressable accessibilityRole="button" onPress={() => goTo("Agenda")} style={{ padding: 18, gap: 6 }}>
-              <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2, textTransform: "uppercase", color: c.gold }}>{fmtDate(nextEvent.starts_at, true)}</Text>
-              <Text style={{ fontFamily: serif, fontSize: 26, lineHeight: 29, color: c.text }}>{nextEvent.title}</Text>
-              <Text style={{ fontFamily: sans, fontSize: 15, color: c.soft }}>{nextEvent.venue}, {nextEvent.city}{nextEvent.ticket_price ? ` · dès ${money(nextEvent.ticket_price, nextEvent.currency)}` : ""}</Text>
-              {nextEvent.poster_url ? <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted }}>Touchez l'affiche pour l'agrandir.</Text> : null}
-            </Pressable>
-            {nextEvent.tickets_enabled ? <View style={{ paddingHorizontal: 18, paddingBottom: 18 }}><Button label="Acheter un ticket" onPress={() => openTickets(nextEvent)} /></View> : null}
-          </View>
-        </>
-      ) : null}
-
-      {last && lastTrack ? (
-        <>
-          <Text style={{ fontFamily: serif, fontSize: 22, color: c.text, marginTop: 32 }}>Reprendre l'écoute</Text>
-          <View style={{ marginTop: 12, flexDirection: "row", alignItems: "center", gap: 14, padding: 12, borderRadius: 14, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-            <Cover uri={last.album.cover_url} size={56} radius={10} />
-            <View style={{ flex: 1 }}>
-              <Text numberOfLines={1} style={{ fontFamily: sansBold, fontSize: 15, color: c.text }}>{lastTrack.title}</Text>
-              <Text numberOfLines={1} style={{ fontFamily: sans, fontSize: 13, color: c.muted, marginTop: 3 }}>{last.album.title} · {fmtTime(last.position)} sur {fmtTime(last.duration)}</Text>
-              <View style={{ marginTop: 8, height: 3, borderRadius: 2, backgroundColor: c.line }}><View style={{ width: `${pct * 100}%`, height: 3, borderRadius: 2, backgroundColor: c.rose }} /></View>
-            </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Reprendre la lecture" onPress={() => void p.resume()} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.text, alignItems: "center", justifyContent: "center" }}>
-              <Ionicons name="play" size={18} color={c.bg} />
-            </Pressable>
+          <Text style={{ fontFamily: serif, fontSize: 22, color: c.text, marginTop: 30 }}>À découvrir</Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 18, marginTop: 14 }}>
+            {releases.map((a, i) => (
+              <Pressable key={a.id} accessibilityRole="button" accessibilityLabel={a.title} onPress={() => openArticle(a)} style={{ width: gridW }}>
+                <View style={{ width: "100%", aspectRatio: 1, borderRadius: 16, overflow: "hidden", backgroundColor: c.card }}><Cover uri={a.cover_url} size="100%" radius={0} /></View>
+                <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 2, textTransform: "uppercase", color: c.gold, marginTop: 10 }}>{i === 0 ? "Dernière sortie" : "Nouveauté"}</Text>
+                <Text numberOfLines={2} style={{ fontFamily: serif, fontSize: 18, lineHeight: 21, color: c.text, marginTop: 2 }}>{a.title}</Text>
+              </Pressable>
+            ))}
           </View>
         </>
       ) : null}
