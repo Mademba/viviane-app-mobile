@@ -1,6 +1,6 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
-import { usePreventScreenCapture } from "expo-screen-capture";
+import { useSecureScreen } from "../secure";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePlayer } from "../player";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,7 +9,7 @@ import Watermark, { wmText } from "../Watermark";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export default function Player({ onClose }: { onClose: () => void }) {
-  usePreventScreenCapture("player");
+  useSecureScreen("player");
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const p = usePlayer();

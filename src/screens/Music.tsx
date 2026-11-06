@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, TextInp
 import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { go, goTab } from "../nav";
-import { usePreventScreenCapture } from "expo-screen-capture";
+import { useSecureScreen } from "../secure";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, claimCode, fetchLibrary, getToken, type LibAlbum } from "../api";
 import { usePlayer } from "../player";
@@ -88,7 +88,7 @@ const daysUntil = (iso: string | null) => (iso ? Math.max(0, Math.ceil((new Date
 
 export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
   void onOpenPlayer;
-  usePreventScreenCapture("music");
+  useSecureScreen("music");
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const p = usePlayer();

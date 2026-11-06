@@ -3,7 +3,7 @@ import { ActivityIndicator, BackHandler, Platform, Pressable, StatusBar, Text, V
 import { Ionicons } from "@expo/vector-icons";
 import { useEvent } from "expo";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { usePreventScreenCapture } from "expo-screen-capture";
+import { useSecureScreen } from "../secure";
 import * as ScreenOrientation from "expo-screen-orientation";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { trackSource, type LibAlbum } from "../api";
@@ -117,7 +117,7 @@ function Video({ src, wm, full, onFull }: { src: Src; wm: string; full: boolean;
 
 /** Lecture d'un clip vidéo exclusif acheté (flux protégé, captures d'écran bloquées). */
 export default function Clip({ route, navigation }: { route: { params: { album: LibAlbum } }; navigation: { goBack: () => void } }) {
-  usePreventScreenCapture("clip");
+  useSecureScreen("clip");
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const p = usePlayer();

@@ -4,14 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { LibAlbum } from "../api";
 import { go, ui } from "../nav";
-import { usePreventScreenCapture } from "expo-screen-capture";
+import { useSecureScreen } from "../secure";
 import { usePlayer } from "../player";
 import { BackBar, Banner, Body, Button, NaturalImage, fmtDate } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 /** Dossier d'un album ou single acheté : pochette, puis tracklist. */
 export default function Collection({ route, navigation }: { route: { params: { album: LibAlbum } }; navigation: { goBack: () => void } }) {
-  usePreventScreenCapture("collection");
+  useSecureScreen("collection");
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const p = usePlayer();
