@@ -12,20 +12,20 @@ export const dark: Palette = {
   onRose: "#ffffff", pink: "#f499a7", dark: true,
 };
 export const light: Palette = {
-  bg: "#fff6f4", card: "#ffffff", bar: "#ffffff", text: "#2a0710", soft: "rgba(42,7,16,.85)",
-  muted: "rgba(42,7,16,.62)", line: "rgba(42,7,16,.12)", rose: "#c42b5e", gold: "#9a6a12",
-  onRose: "#ffffff", pink: "#c42b5e", dark: false,
+  bg: "#fbf4ef", card: "#ffffff", bar: "#ffffff", text: "#361116", soft: "rgba(54,17,22,.86)",
+  muted: "rgba(54,17,22,.68)", line: "rgba(54,17,22,.12)", rose: "#c42c63", gold: "#8a5d0b",
+  onRose: "#ffffff", pink: "#c42c63", dark: false,
 };
 
 export const serif = "CormorantGaramond_700Bold";
 export const sans = "Inter_400Regular";
 export const sansBold = "Inter_600SemiBold";
 
-const Ctx = createContext<{ c: Palette; toggle: () => void }>({ c: dark, toggle: () => {} });
+const Ctx = createContext<{ c: Palette; toggle: () => void }>({ c: light, toggle: () => {} });
 export const useTheme = () => useContext(Ctx);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [isDark, setDark] = useState(true);
+  const [isDark, setDark] = useState(false);  // thème clair par défaut ; le choix du fan est conservé
   useEffect(() => {
     SecureStore.getItemAsync("theme").then((v) => v && setDark(v !== "light")).catch(() => {});
   }, []);

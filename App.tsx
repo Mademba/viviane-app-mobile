@@ -67,9 +67,15 @@ function Main() {
               <Tab.Navigator
                 screenOptions={({ route }) => ({
                   headerShown: false,
-                  tabBarActiveTintColor: c.gold,
+                  tabBarActiveTintColor: c.dark ? c.gold : c.rose,
                   tabBarInactiveTintColor: c.muted,
-                  tabBarStyle: { backgroundColor: c.bar, borderTopColor: c.line, height: 62 + insets.bottom, paddingTop: 6 },
+                  tabBarActiveBackgroundColor: c.dark ? "rgba(227,173,75,.14)" : "#fbe3e8",
+                  tabBarItemStyle: { borderRadius: 28, marginVertical: 0 },
+                  tabBarStyle: {
+                    backgroundColor: c.bar, borderTopWidth: 0, height: 68, paddingTop: 6, paddingBottom: 6, paddingHorizontal: 6,
+                    marginHorizontal: 14, marginBottom: Math.max(insets.bottom, 10), borderRadius: 34,
+                    ...(c.dark ? { borderWidth: 1, borderColor: "rgba(255,240,239,.10)" } : { shadowColor: "#361116", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 10 }),
+                  },
                   tabBarLabelStyle: { fontFamily: sansBold, fontSize: 11 },
                   tabBarIcon: ({ color }) => (ICON[route.name] ? <Ionicons name={ICON[route.name]!} size={24} color={color} /> : null),
                 })}

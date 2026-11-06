@@ -8,6 +8,14 @@ export function H1({ children }: { children: React.ReactNode }) {
   const { c } = useTheme();
   return <Text style={{ fontFamily: serif, fontSize: 30, color: c.text, lineHeight: 34 }}>{children}</Text>;
 }
+/** Style de carte : ombre douce en clair, fin liseré en sombre. */
+export const cardLook = (c: { dark: boolean; card: string }) => ({
+  backgroundColor: c.card,
+  ...(c.dark
+    ? { borderWidth: 1, borderColor: "rgba(255,240,239,.10)" }
+    : { shadowColor: "#361116", shadowOpacity: 0.09, shadowRadius: 14, shadowOffset: { width: 0, height: 8 }, elevation: 4 }),
+});
+
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   const { c } = useTheme();
   return <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: c.gold }}>{children}</Text>;
@@ -65,7 +73,7 @@ export function ThemeButton() {
   const { c, toggle } = useTheme();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={c.dark ? "Passer en mode clair" : "Passer en mode sombre"} onPress={toggle}
-      style={{ width: 44, height: 44, borderRadius: 22, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}>
+      style={[{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" }, cardLook(c)]}>
       <Ionicons name={c.dark ? "sunny-outline" : "moon-outline"} size={20} color={c.text} />
     </Pressable>
   );
