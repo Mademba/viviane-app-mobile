@@ -1,59 +1,67 @@
 import React, { useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Article, EventItem } from "../api";
 import { useContent } from "../content";
 import { go } from "../nav";
-import { Banner, Body, Button, Cover, FitImage, Lightbox, TopBar, fmtDate, money } from "../ui";
+import { Banner, Body, Button, FilterChip, FitImage, Lightbox, Page, TopBar, cardLook, fmtDate, money, tintOf } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export const openArticle = (a: Article) => (a.is_album ? go("Album", { id: a.album_slug ?? a.id }) : go("Article", { article: a }));
 export const openTickets = (e: EventItem) => go("Ticket", { id: e.slug ?? e.id });
 
-function Screen({ title, children, refresh, busy }: { title: string; children: React.ReactNode; refresh: () => void; busy: boolean }) {
+function Screen({ title, sub, children, refresh, busy }: { title: string; sub: string; children: React.ReactNode; refresh: () => void; busy: boolean }) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 32, gap: 14 }}
-      refreshControl={<RefreshControl refreshing={busy} onRefresh={refresh} tintColor={c.rose} />}>
-      <TopBar title={title} />
-      {children}
-    </ScrollView>
+    <Page>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 130, gap: 14 }}
+        refreshControl={<RefreshControl refreshing={busy} onRefresh={refresh} tintColor={c.rose} />}>
+        <TopBar title={title} sub={sub} />
+        {children}
+      </ScrollView>
+    </Page>
   );
 }
 
 export function News() {
   const { c } = useTheme();
   const { data, err, busy, load } = useContent();
-  const list = data?.articles ?? [];
-  const top = list.find((a) => a.featured) ?? list[0];
-  const rest = list.filter((a) => a !== top);
+  const [filter, setFilter] = useState<"all" | "release" | "news">("all");
+  const all = data?.articles ?? [];
+  const top = all.find((a) => a.featured) ?? all[0];
+  const list = all.filter((a) => filter === "all" || (filter === "release" ? a.is_album : !a.is_album)).sort((x, y) => Number(y === top) - Number(x === top));
+  const Tag = ({ text }: { text: string }) => (
+    <View style={{ position: "absolute", top: 12, left: 12, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: "#ffffff" }}>
+      <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 0.9, textTransform: "uppercase", color: c.dark ? "#8a5d0b" : "#8a5d0b" }}>{text}</Text>
+    </View>
+  );
   return (
-    <Screen title="Actualités" refresh={load} busy={busy}>
+    <Screen title="Actualités" sub="Les nouvelles de Viviane" refresh={load} busy={busy}>
       {err ? <Banner text={err} /> : null}
       {!data && !err ? <ActivityIndicator color={c.rose} /> : null}
-      {data && !list.length ? <Body>Aucune actualité pour le moment.</Body> : null}
-      {top ? (
-        <Pressable accessibilityRole="button" onPress={() => openArticle(top)} style={{ borderRadius: 18, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-          <FitImage uri={top.cover_url} ratio={1.05} />
-          <View style={{ padding: 20, gap: 12 }}>
-            <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 2, color: c.gold, textTransform: "uppercase" }}>{fmtDate(top.published_at, true)}</Text>
-            <Text style={{ fontFamily: serif, fontSize: 34, lineHeight: 37, color: c.text }}>{top.title}</Text>
-            {top.excerpt ? <Body numberOfLines={4} style={{ fontSize: 16, lineHeight: 24 }}>{top.excerpt}</Body> : null}
-            <Button label={top.is_album ? "Voir l'album" : "Lire l'article"} onPress={() => openArticle(top)} style={{ marginTop: 6 }} />
-          </View>
-        </Pressable>
+      {data && !all.length ? <Body>Aucune actualité pour le moment.</Body> : null}
+      {all.length ? (
+        <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
+          <FilterChip label="Tout" on={filter === "all"} onPress={() => setFilter("all")} />
+          <FilterChip label="Sorties" on={filter === "release"} onPress={() => setFilter("release")} />
+          <FilterChip label="Actualités" on={filter === "news"} onPress={() => setFilter("news")} />
+        </View>
       ) : null}
-      {rest.map((a) => (
-        <Pressable key={a.id} accessibilityRole="button" onPress={() => openArticle(a)} style={{ flexDirection: "row", gap: 14, padding: 12, borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
-          <View style={{ width: 112 }}><FitImage uri={a.cover_url} ratio={1} radius={12} /></View>
-          <View style={{ flex: 1, justifyContent: "center", gap: 6 }}>
-            <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 2, color: c.gold, textTransform: "uppercase" }}>{fmtDate(a.published_at)}</Text>
-            <Text numberOfLines={3} style={{ fontFamily: sansBold, fontSize: 17, lineHeight: 22, color: c.text }}>{a.title}</Text>
+      {data && all.length && !list.length ? <Body>Rien dans cette catégorie pour le moment.</Body> : null}
+      {list.map((a) => (
+        <Pressable key={a.id} accessibilityRole="button" onPress={() => openArticle(a)} style={[{ borderRadius: 26, overflow: "hidden" }, cardLook(c)]}>
+          <View>
+            <FitImage uri={a.cover_url} ratio={a === top ? 1.2 : 1.6} />
+            {a === top ? <Tag text="À la une" /> : a.is_album ? <Tag text="Sortie" /> : null}
+          </View>
+          <View style={{ padding: 16, gap: 6 }}>
+            <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 1.5, color: c.gold, textTransform: "uppercase" }}>{fmtDate(a.published_at, true)}</Text>
+            <Text style={{ fontFamily: serif, fontSize: a === top ? 28 : 24, lineHeight: a === top ? 31 : 27, color: c.text }}>{a.title}</Text>
+            {a.excerpt ? <Body numberOfLines={a === top ? 4 : 2} style={{ fontSize: 14, lineHeight: 20, color: c.muted }}>{a.excerpt}</Body> : null}
             {a.is_album ? (
-              <View style={{ alignSelf: "flex-start", height: 36, paddingHorizontal: 16, borderRadius: 18, backgroundColor: c.rose, justifyContent: "center", marginTop: 2 }}>
+              <View style={{ alignSelf: "flex-start", height: 38, paddingHorizontal: 18, borderRadius: 19, backgroundColor: c.rose, justifyContent: "center", marginTop: 6 }}>
                 <Text style={{ fontFamily: sansBold, fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", color: c.onRose }}>Voir l'album</Text>
               </View>
             ) : null}
@@ -68,6 +76,7 @@ export function Agenda() {
   const { c } = useTheme();
   const { data, err, busy, load } = useContent();
   const [showAll, setShowAll] = useState(false);
+  const [tab, setTab] = useState<"next" | "past">("next");
   const [poster, setPoster] = useState<string | null>(null);
   const limit = Date.now() - 6 * 3600e3;
   const all = data?.events ?? [];
@@ -84,14 +93,14 @@ export function Agenda() {
   const row = (e: EventItem, isPast: boolean) => {
     const d = new Date(e.starts_at);
     return (
-      <View key={e.id} style={{ borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, padding: 14, gap: 12, opacity: isPast ? 0.75 : 1 }}>
+      <View key={e.id} style={[{ borderRadius: 24, padding: 14, gap: 12, opacity: isPast ? 0.8 : 1 }, cardLook(c)]}>
         <View style={{ flexDirection: "row", gap: 14 }}>
-          <View style={{ width: 62, borderRadius: 12, backgroundColor: isPast ? c.line : c.rose, alignItems: "center", justifyContent: "center", paddingVertical: 8 }}>
-            <Text style={{ fontFamily: serif, fontSize: 28, color: isPast ? c.text : c.onRose }}>{d.getDate()}</Text>
-            <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 1.5, color: isPast ? c.text : c.onRose, textTransform: "uppercase" }}>{d.toLocaleDateString("fr-FR", { month: "short" })}</Text>
+          <View style={{ width: 62, height: 70, borderRadius: 18, backgroundColor: isPast ? (c.dark ? c.line : "#f1e1dc") : tintOf(c), alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ fontFamily: serif, fontSize: 30, lineHeight: 32, color: isPast ? c.muted : c.rose }}>{d.getDate()}</Text>
+            <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 1.4, color: isPast ? c.muted : c.rose, textTransform: "uppercase" }}>{d.toLocaleDateString("fr-FR", { month: "short" })}</Text>
           </View>
           <View style={{ flex: 1, gap: 3 }}>
-            <Text style={{ fontFamily: sansBold, fontSize: 16, color: c.text }}>{e.title}</Text>
+            <Text style={{ fontFamily: serif, fontSize: 21, lineHeight: 23, color: c.text }}>{e.title}</Text>
             <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{e.venue}, {e.city} · {d.getFullYear()}</Text>
             {!isPast && e.ticket_price ? <Text style={{ fontFamily: sansBold, fontSize: 13, color: c.gold }}>À partir de {money(e.ticket_price, e.currency)}</Text> : null}
           </View>
@@ -102,32 +111,39 @@ export function Agenda() {
   };
 
   return (
-    <Screen title="Agenda" refresh={load} busy={busy}>
+    <Screen title="Agenda" sub="Concerts et événements" refresh={load} busy={busy}>
       {err ? <Banner text={err} /> : null}
       {!data && !err ? <ActivityIndicator color={c.rose} /> : null}
       {data && !all.length ? <Body>Aucun événement pour le moment.</Body> : null}
 
-      {featured ? ((() => {
+      {all.length ? (
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <FilterChip label="À venir" on={tab === "next"} onPress={() => setTab("next")} />
+          <FilterChip label="Passés" on={tab === "past"} onPress={() => setTab("past")} />
+        </View>
+      ) : null}
+
+      {tab === "next" && featured ? ((() => {
         const d = new Date(featured.starts_at);
         const hour = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
         return (
-          <View style={{ borderRadius: 22, overflow: "hidden", backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+          <View style={[{ borderRadius: 26, overflow: "hidden" }, cardLook(c)]}>
             <View>
               <FitImage uri={featured.poster_url} ratio={1.75} onPress={() => setPoster(featured.poster_url)} label="Agrandir l'affiche" />
-              <Text style={{ position: "absolute", left: 14, top: 14, backgroundColor: c.rose, color: "#fff", fontFamily: sansBold, fontSize: 12, letterSpacing: 1.6, textTransform: "uppercase", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: "hidden" }}>À l'affiche</Text>
+              <Text style={{ position: "absolute", left: 14, top: 14, backgroundColor: "#ffffff", color: c.rose, fontFamily: sansBold, fontSize: 11, letterSpacing: 1.4, textTransform: "uppercase", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, overflow: "hidden" }}>À l'affiche</Text>
             </View>
             <View style={{ padding: 16, gap: 10 }}>
-              <Text style={{ fontFamily: serif, fontSize: 27, lineHeight: 30, color: c.text }}>{featured.title}</Text>
+              <Text style={{ fontFamily: serif, fontSize: 28, lineHeight: 31, color: c.text }}>{featured.title}</Text>
               <View style={{ gap: 8 }}>
                 {([["calendar-outline", fmtDate(featured.starts_at, true)], ["time-outline", hour === "00:00" ? "Horaire à confirmer" : hour], ["location-outline", `${featured.venue}, ${featured.city}`]] as const).map(([icon, txt]) => (
                   <View key={icon} style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(221,70,119,.16)", alignItems: "center", justifyContent: "center" }}><Ionicons name={icon} size={18} color={c.pink} /></View>
+                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: tintOf(c), alignItems: "center", justifyContent: "center" }}><Ionicons name={icon} size={18} color={c.pink} /></View>
                     <Text style={{ flex: 1, fontFamily: sans, fontSize: 15, lineHeight: 20, color: c.text }}>{txt}</Text>
                   </View>
                 ))}
                 {featured.ticket_price ? (
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "rgba(227,173,75,.18)", alignItems: "center", justifyContent: "center" }}><Ionicons name="pricetag-outline" size={18} color={c.gold} /></View>
+                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: c.dark ? "rgba(227,173,75,.18)" : "#fdf0d3", alignItems: "center", justifyContent: "center" }}><Ionicons name="pricetag-outline" size={18} color={c.gold} /></View>
                     <Text style={{ fontFamily: sansBold, fontSize: 16, color: c.gold }}>À partir de {money(featured.ticket_price, featured.currency)}</Text>
                   </View>
                 ) : null}
@@ -138,21 +154,22 @@ export function Agenda() {
           </View>
         );
       })()
-      ) : data && all.length ? <Body>Aucun événement à venir pour le moment.</Body> : null}
+      ) : tab === "next" && data && all.length ? <Body>Aucun événement à venir pour le moment.</Body> : null}
 
-      {others.length ? <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 6 }}>À venir</Text> : null}
-      {others.map((e) => row(e, false))}
+      {tab === "next" && others.length ? <Text style={{ fontFamily: serif, fontSize: 24, color: c.text, marginTop: 6 }}>À venir</Text> : null}
+      {tab === "next" ? others.map((e) => row(e, false)) : null}
 
-      {pastNow.length ? (
+      {tab === "past" && !past.length ? <Body>Aucun événement passé.</Body> : null}
+      {tab === "past" && pastNow.length ? (
         <>
-          <Text style={{ fontFamily: serif, fontSize: 20, color: c.text, marginTop: 10 }}>Événements passés · {thisYear}</Text>
+          <Text style={{ fontFamily: serif, fontSize: 24, color: c.text, marginTop: 6 }}>{thisYear}</Text>
           {pastNow.map((e) => row(e, true))}
         </>
       ) : null}
-      {pastOld.length ? (
+      {tab === "past" && pastOld.length ? (
         <>
-          <Pressable accessibilityRole="button" onPress={() => setShowAll((v) => !v)} style={{ minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            <Text style={{ fontFamily: sansBold, fontSize: 14, color: c.pink }}>{showAll ? "Masquer les années précédentes" : `Voir les années précédentes (${pastOld.length})`}</Text>
+          <Pressable accessibilityRole="button" onPress={() => setShowAll((v) => !v)} style={[{ minHeight: 52, borderRadius: 22, paddingHorizontal: 18, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, cardLook(c)]}>
+            <Text style={{ fontFamily: sansBold, fontSize: 14, color: c.text }}>{showAll ? "Masquer les années précédentes" : `Voir les années précédentes (${pastOld.length})`}</Text>
             <Ionicons name={showAll ? "chevron-up" : "chevron-down"} size={18} color={c.pink} />
           </Pressable>
           {showAll ? byYear.map(([y, list]) => (

@@ -79,19 +79,44 @@ export function ThemeButton() {
   );
 }
 
-/** En-tête commun : nom + titre à gauche, bouton clair/sombre (et éventuellement autre action) à droite. */
-export function TopBar({ title, extra }: { title: string; extra?: React.ReactNode }) {
+/** Halo rose chaud en haut des écrans (fond de page). */
+export function Page({ children }: { children: React.ReactNode }) {
   const { c } = useTheme();
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: c.gold }}>Viviane Chidid</Text>
-        <Text style={{ fontFamily: serif, fontSize: 30, color: c.text, marginTop: 6 }}>{title}</Text>
-      </View>
-      <View style={{ flexDirection: "row", gap: 8 }}>{extra}<ThemeButton /></View>
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <LinearGradient pointerEvents="none" colors={[c.dark ? "rgba(221,70,119,.16)" : "rgba(196,44,99,.14)", "rgba(0,0,0,0)"]} style={{ position: "absolute", left: 0, right: 0, top: 0, height: 320 }} />
+      {children}
     </View>
   );
 }
+
+/** En-tête commun : titre en serif, sous-titre, bouton clair/sombre (et éventuellement autre action) à droite. */
+export function TopBar({ title, sub, extra }: { title: string; sub?: string; extra?: React.ReactNode }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+      <View style={{ flex: 1, paddingRight: 12 }}>
+        <Text style={{ fontFamily: serif, fontSize: 36, lineHeight: 40, color: c.text }}>{title}</Text>
+        {sub ? <Text style={{ fontFamily: sans, fontSize: 14, color: c.muted, marginTop: 2 }}>{sub}</Text> : null}
+      </View>
+      <View style={{ flexDirection: "row", gap: 10 }}>{extra}<ThemeButton /></View>
+    </View>
+  );
+}
+
+/** Pastille de filtre. */
+export function FilterChip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  const { c } = useTheme();
+  return (
+    <Pressable accessibilityRole="button" accessibilityState={{ selected: on }} onPress={onPress}
+      style={[{ height: 40, paddingHorizontal: 16, borderRadius: 20, justifyContent: "center" }, on ? { backgroundColor: c.rose, shadowColor: c.rose, shadowOpacity: c.dark ? 0 : 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 5 }, elevation: on && !c.dark ? 4 : 0 } : cardLook(c)]}>
+      <Text style={{ fontFamily: sansBold, fontSize: 13, color: on ? c.onRose : c.text }}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** Teinte rose douce pour les pastilles d'icône et de date. */
+export const tintOf = (c: { dark: boolean }) => (c.dark ? "rgba(221,70,119,.18)" : "#fbe3e8");
 
 /** En-tête des écrans empilés : retour + titre court + bouton clair/sombre. */
 export function BackBar({ onBack, label }: { onBack: () => void; label: string }) {
