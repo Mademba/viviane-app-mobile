@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as Application from "expo-application";
+import Constants from "expo-constants";
+import { secureState } from "../secure";
 import { API_URL } from "../config";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, fetchDevices, getToken, logout, removeDevice, type DeviceOrder } from "../api";
@@ -78,7 +80,12 @@ export default function Profile() {
         <Ionicons name={c.dark ? "sunny-outline" : "moon-outline"} size={20} color={c.rose} />
       </Pressable>
       {logged ? <Button ghost label="Se déconnecter" onPress={async () => { await logout(); setOrders([]); setLogged(false); }} /> : null}
-      <Body style={{ fontSize: 12, color: c.muted, textAlign: "center" }}>Version {Application.nativeApplicationVersion ?? "dev"} (build {Application.nativeBuildVersion ?? "dev"}) · {API_URL.replace("https://", "")}</Body>
+      <Body style={{ fontSize: 12, color: c.muted, textAlign: "center" }}>Version {Application.nativeApplicationVersion ?? "dev"} (build {Application.nativeBuildVersion ?? "dev"}) · {API_URL.replace("https://", "")}{(Constants.expoConfig?.extra as { commit?: string } | undefined)?.commit ? ` · ${(Constants.expoConfig?.extra as { commit?: string }).commit}` : ""}</Body>
+      <Pressable accessibilityRole="button" onPress={() => setErr(null)} onLongPress={() => undefined}>
+        <Body style={{ fontSize: 12, color: c.muted, textAlign: "center" }}>
+          Anti-capture : {secureState.ok === null ? "pas encore activé (ouvrez Ma musique ou le lecteur)" : secureState.ok ? "actif" : `ERREUR — ${secureState.error}`}
+        </Body>
+      </Pressable>
     </ScrollView>
     </Page>
   );
