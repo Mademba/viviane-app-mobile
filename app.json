@@ -8,8 +8,21 @@
     "userInterfaceStyle": "automatic",
     "scheme": "vivianechidid",
     "backgroundColor": "#190104",
-    "splash": { "image": "./assets/splash-icon.png", "resizeMode": "contain", "backgroundColor": "#190104" },
-    "ios": { "supportsTablet": false, "bundleIdentifier": "com.vivianechidid.app", "infoPlist": { "UIBackgroundModes": ["audio"] } },
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#190104"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.vivianechidid.app",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
     "android": {
       "package": "com.vivianechidid.app",
       "adaptiveIcon": {
@@ -20,6 +33,16 @@
       },
       "predictiveBackGestureEnabled": false
     },
-    "plugins": ["./plugins/no-audio-capture", "expo-secure-store", "expo-font", ["expo-screen-orientation", { "initialOrientation": "PORTRAIT_UP" }]]
+    "plugins": [
+      "./plugins/no-audio-capture",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ]
+    ]
   }
 }

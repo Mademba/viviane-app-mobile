@@ -1,6 +1,6 @@
 import { useEffect } from "react";
-import { AppState } from "react-native";
-import { allowScreenCaptureAsync, preventScreenCaptureAsync } from "expo-screen-capture";
+import { AppState, Platform } from "react-native";
+import { allowScreenCaptureAsync, disableAppSwitcherProtectionAsync, enableAppSwitcherProtectionAsync, preventScreenCaptureAsync } from "expo-screen-capture";
 
 /** État du blocage, affiché dans Profil pour vérifier qu'il est bien actif sur l'appareil. */
 export const secureState: { ok: boolean | null; error: string | null; at: number | null } = { ok: null, error: null, at: null };
@@ -23,9 +23,14 @@ export function useSecureScreen(key: string) {
       preventScreenCaptureAsync(k).then(() => { note(); return allowScreenCaptureAsync(k); }).catch((e) => note(e));
     };
     preventScreenCaptureAsync(key).then(() => note()).catch((e) => note(e));
+    // iOS : floute aussi l'aperçu de l'application dans le sélecteur d'applications (Android le masque déjà)
+    if (Platform.OS === "ios") enableAppSwitcherProtectionAsync(0.9).catch(() => {});
     const sub = AppState.addEventListener("change", (s) => { if (s === "active") apply(); });
     // Ré-application peu après l'affichage : couvre une fenêtre recréée juste après le montage
     const t = setTimeout(apply, 800);
-    return () => { clearTimeout(t); sub.remove(); void allowScreenCaptureAsync(key); };
+    return () => {
+      clearTimeout(t); sub.remove(); void allowScreenCaptureAsync(key);
+      if (Platform.OS === "ios") disableAppSwitcherProtectionAsync().catch(() => {});
+    };
   }, [key]);
 }

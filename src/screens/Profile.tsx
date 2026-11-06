@@ -81,11 +81,7 @@ export default function Profile() {
       </Pressable>
       {logged ? <Button ghost label="Se déconnecter" onPress={async () => { await logout(); setOrders([]); setLogged(false); }} /> : null}
       <Body style={{ fontSize: 12, color: c.muted, textAlign: "center" }}>Version {Application.nativeApplicationVersion ?? "dev"} (build {Application.nativeBuildVersion ?? "dev"}) · {API_URL.replace("https://", "")}{(Constants.expoConfig?.extra as { commit?: string } | undefined)?.commit ? ` · ${(Constants.expoConfig?.extra as { commit?: string }).commit}` : ""}</Body>
-      <Pressable accessibilityRole="button" onPress={() => setErr(null)} onLongPress={() => undefined}>
-        <Body style={{ fontSize: 12, color: c.muted, textAlign: "center" }}>
-          Anti-capture : {secureState.ok === null ? "pas encore activé (ouvrez Ma musique ou le lecteur)" : secureState.ok ? "actif" : `ERREUR — ${secureState.error}`}
-        </Body>
-      </Pressable>
+      {secureState.ok === false ? <Body style={{ fontSize: 12, color: c.pink, textAlign: "center" }}>Protection des captures indisponible : {secureState.error}</Body> : null}
     </ScrollView>
     </Page>
   );
