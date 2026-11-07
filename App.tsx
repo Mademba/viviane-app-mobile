@@ -69,15 +69,17 @@ function Main() {
                   headerShown: false,
                   tabBarActiveTintColor: c.dark ? c.gold : c.rose,
                   tabBarInactiveTintColor: c.muted,
-                  tabBarActiveBackgroundColor: c.dark ? "rgba(227,173,75,.14)" : "#fbe3e8",
-                  tabBarItemStyle: { borderRadius: 28, marginVertical: 0 },
                   tabBarStyle: {
                     backgroundColor: c.bar, borderTopWidth: 0, height: 68, paddingTop: 6, paddingBottom: 6, paddingHorizontal: 6,
                     marginHorizontal: 14, marginBottom: Math.max(insets.bottom, 10), borderRadius: 34,
                     ...(c.dark ? { borderWidth: 1, borderColor: "rgba(255,240,239,.10)" } : { shadowColor: "#361116", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 10 }),
                   },
                   tabBarLabelStyle: { fontFamily: sansBold, fontSize: 11 },
-                  tabBarIcon: ({ color }) => (ICON[route.name] ? <Ionicons name={ICON[route.name]!} size={24} color={color} /> : null),
+                  tabBarIcon: ({ color, focused }) => (ICON[route.name] ? (
+                    <View style={{ width: 56, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: focused ? (c.dark ? "rgba(227,173,75,.16)" : "#fbe3e8") : "transparent" }}>
+                      <Ionicons name={ICON[route.name]!} size={22} color={color} />
+                    </View>
+                  ) : null),
                 })}
                 tabBar={(props) => (
                   <View>
@@ -87,7 +89,7 @@ function Main() {
                 )}
               >
                 <Tab.Screen name="Accueil" component={Home} />
-                <Tab.Screen name="Ma musique">{() => <Music onOpenPlayer={() => setFull(true)} />}</Tab.Screen>
+                <Tab.Screen name="Ma musique" options={{ tabBarLabel: "Musique" }}>{() => <Music onOpenPlayer={() => setFull(true)} />}</Tab.Screen>
                 <Tab.Screen name="Actualités" component={News} />
                 <Tab.Screen name="Agenda" component={Agenda} />
                 <Tab.Screen name="Profil" component={Profile} />

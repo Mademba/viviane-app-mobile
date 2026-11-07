@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchEventSale, placeTicketOrder, type EventSale, type PayMethod, type Placed } from "../api";
 import PayFlow from "./PayFlow";
-import { BackBar, Banner, Body, Button, Cover, Field, PayPicker, fmtDate, money, validEmail } from "../ui";
+import { BackBar, Banner, Body, Button, Cover, Field, PayPicker, cardLook, fmtDate, money, validEmail } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export default function Ticket({ route, navigation }: { route: { params: { id: string } }; navigation: { goBack: () => void } }) {
@@ -57,7 +57,7 @@ export default function Ticket({ route, navigation }: { route: { params: { id: s
               <Banner kind="info" text="La vente en ligne n'est pas ouverte pour cet événement." />
             ) : (
               <>
-                <View style={{ borderRadius: 14, backgroundColor: c.card, borderWidth: 1, borderColor: c.line }}>
+                <View style={[{ borderRadius: 22 }, cardLook(c)]}>
                   {types.map((t, i) => {
                     const q = qty[t.id] ?? 0;
                     const max = Math.max(0, Math.min(5 - (count - q), t.remaining ?? 5)); // 5 au total, toutes catégories confondues

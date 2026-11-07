@@ -9,7 +9,7 @@ import * as WebBrowser from "expo-web-browser";
 import { Ionicons } from "@expo/vector-icons";
 import { albumStatus, redeem, simulateAlbum, simulateTicket, ticketStatus, type PayMethod, type Placed } from "../api";
 import { goTab } from "../nav";
-import { Banner, Body, Button, openLink } from "../ui";
+import { Banner, Body, Button, cardLook, openLink } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 type Kind = "ticket" | "album";
@@ -116,7 +116,7 @@ export default function PayFlow({ kind, noun = "album", placed, method, mode, on
     setBusy(false);
   };
 
-  const box = { borderRadius: 16, backgroundColor: c.card, borderWidth: 1, borderColor: c.line, padding: 18, gap: 10 } as const;
+  const box = { ...cardLook(c), borderRadius: 24, padding: 18, gap: 10 } as const;
 
   if (st.status === "paid") {
     return (
