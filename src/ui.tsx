@@ -269,3 +269,10 @@ export function Expandable({ text, limit = 380 }: { text: string; limit?: number
     </View>
   );
 }
+
+/** Sur tablette, le contenu reste dans une colonne de téléphone centrée (comme sur les maquettes) au lieu de s'étirer. */
+export const COLW = 540;
+export const COL = { width: "100%", maxWidth: COLW, alignSelf: "center" } as const;
+export function useColW() { const { width } = useWindowDimensions(); return Math.min(width, COLW); }
+/** Marge latérale des éléments flottants (barre du bas, mini-lecteur) pour rester dans la colonne. */
+export function useSide(base = 14) { const { width } = useWindowDimensions(); return Math.max(base, (width - COLW) / 2 + base); }

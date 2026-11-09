@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Article as A } from "../api";
 import { go } from "../nav";
-import { BackBar, Button, Expandable, FitImage, Lightbox, NaturalImage, fmtDate, openLink } from "../ui";
+import { BackBar, Button, Expandable, FitImage, Lightbox, NaturalImage, fmtDate, openLink, COL, COLW } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 function InlineVideo({ uri }: { uri: string }) {
@@ -37,10 +37,10 @@ export default function Article({ route, navigation }: { route: { params: { arti
   const videos = a.youtube_urls ?? [];
   const [view, setView] = useState<number | null>(null);
   const text = (a.content ?? "").replace(/\r\n/g, "\n").trim();
-  const gw = width - 44;
+  const gw = Math.min(width, COLW) - 44;
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingBottom: 48 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ ...COL, paddingBottom: 48 }}>
       {/* 1. Photo de couverture entière, sans texte dessus */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 10 }}><BackBar onBack={navigation.goBack} label="Actualités" /></View>
       <NaturalImage uri={a.cover_url} min={0.7} max={1.5} />

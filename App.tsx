@@ -7,6 +7,7 @@ import { BottomTabBar, createBottomTabNavigator } from "@react-navigation/bottom
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFonts, CormorantGaramond_700Bold } from "@expo-google-fonts/cormorant-garamond";
 import { Inter_400Regular, Inter_600SemiBold } from "@expo-google-fonts/inter";
+import { cardLook, useSide } from "./src/ui";
 import { ThemeProvider, useTheme, sans, sansBold } from "./src/theme";
 import { PlayerProvider, usePlayer } from "./src/player";
 import { guard } from "./src/session";
@@ -32,16 +33,17 @@ const ICON: Record<string, React.ComponentProps<typeof Ionicons>["name"] | undef
 function MiniPlayer({ onOpen }: { onOpen: () => void }) {
   const { c } = useTheme();
   const p = usePlayer();
+  const side = useSide();
   if (!p.now) return null;
   return (
     <Pressable accessibilityRole="button" accessibilityLabel="Ouvrir le lecteur" onPress={onOpen}
-      style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 16, height: 56, backgroundColor: c.card, borderTopWidth: 1, borderTopColor: c.line }}>
+      style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingLeft: 18, paddingRight: 8, height: 60, marginHorizontal: side, marginBottom: 8, borderRadius: 30 }, cardLook(c)]}>
       <View style={{ flex: 1 }}>
         <Text numberOfLines={1} style={{ fontFamily: sansBold, color: c.text }}>{p.now.album.tracks[p.now.index]?.title}</Text>
         <Text numberOfLines={1} style={{ fontFamily: sans, fontSize: 12, color: c.muted }}>{p.now.album.title}</Text>
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel={p.playing ? "Pause" : "Lecture"} onPress={p.toggle} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontSize: 20, color: c.text }}>{p.playing ? "❚❚" : "▶"}</Text>
+        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.rose, alignItems: "center", justifyContent: "center" }}><Ionicons name={p.playing ? "pause" : "play"} size={20} color="#fff" /></View>
       </Pressable>
     </Pressable>
   );
@@ -50,6 +52,7 @@ function MiniPlayer({ onOpen }: { onOpen: () => void }) {
 function Main() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  const side = useSide();
   const [full, setFull] = useState(false);
   ui.openPlayer = () => setFull(true);
   useEffect(() => {
@@ -71,7 +74,7 @@ function Main() {
                   tabBarInactiveTintColor: c.muted,
                   tabBarStyle: {
                     backgroundColor: c.bar, borderTopWidth: 0, height: 68, paddingTop: 6, paddingBottom: 6, paddingHorizontal: 6,
-                    marginHorizontal: 14, marginBottom: Math.max(insets.bottom, 10), borderRadius: 34,
+                    marginHorizontal: side, marginBottom: Math.max(insets.bottom, 10), borderRadius: 34,
                     ...(c.dark ? { borderWidth: 1, borderColor: "rgba(255,240,239,.10)" } : { shadowColor: "#361116", shadowOpacity: 0.16, shadowRadius: 18, shadowOffset: { width: 0, height: 10 }, elevation: 10 }),
                   },
                   tabBarLabelStyle: { fontFamily: sansBold, fontSize: 11 },

@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchAlbumSale, placeAlbumOrder, type AlbumSale, type PayMethod, type Placed } from "../api";
 import PayFlow from "./PayFlow";
 import VideoPreview from "../VideoPreview";
-import { BackBar, Banner, Body, Button, Field, NaturalImage, PayPicker, fmtDate, money, validEmail } from "../ui";
+import { BackBar, Banner, Body, Button, Field, NaturalImage, PayPicker, fmtDate, money, validEmail, COL } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export default function Album({ route, navigation }: { route: { params: { id: string } }; navigation: { goBack: () => void } }) {
@@ -70,7 +70,7 @@ export default function Album({ route, navigation }: { route: { params: { id: st
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 150 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ ...COL, paddingBottom: 150 }} keyboardShouldPersistTaps="handled">
         <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 10 }}><BackBar onBack={navigation.goBack} label="Album" /></View>
         <NaturalImage uri={a?.cover_url ?? sale?.item.poster_url} min={isClip ? 1.2 : 0.7} max={isClip ? 1.9 : 1.2} />
         {sale ? (

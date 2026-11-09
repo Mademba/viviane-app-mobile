@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Article, EventItem } from "../api";
 import { useContent } from "../content";
 import { go } from "../nav";
-import { Banner, Body, Button, FilterChip, FitImage, Lightbox, Page, TopBar, cardLook, fmtDate, money, tintOf } from "../ui";
+import { Banner, Body, Button, FilterChip, FitImage, Lightbox, Page, TopBar, cardLook, fmtDate, money, tintOf, COL } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export const openArticle = (a: Article) => (a.is_album ? go("Album", { id: a.album_slug ?? a.id }) : go("Article", { article: a }));
@@ -16,7 +16,7 @@ function Screen({ title, sub, children, refresh, busy }: { title: string; sub: s
   const insets = useSafeAreaInsets();
   return (
     <Page>
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 130, gap: 14 }}
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ ...COL, paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 130, gap: 14 }}
         refreshControl={<RefreshControl refreshing={busy} onRefresh={refresh} tintColor={c.rose} />}>
         <TopBar title={title} sub={sub} />
         {children}

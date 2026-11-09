@@ -7,7 +7,7 @@ import { useSecureScreen } from "../secure";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, claimCode, fetchLibrary, getToken, type LibAlbum } from "../api";
 import { usePlayer } from "../player";
-import { Banner, Body, Button, Cover, FilterChip, Page, TopBar, cardLook, fmtDate, tintOf } from "../ui";
+import { Banner, Body, Button, Cover, FilterChip, Page, TopBar, cardLook, fmtDate, tintOf, COL } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 /** Ajoute un nouvel achat à la collection avec son code d'accès (reçu par e-mail après le paiement). */
@@ -116,7 +116,7 @@ export default function Music({ onOpenPlayer }: { onOpenPlayer: () => void }) {
 
   return (
     <Page>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 140 }}
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ ...COL, paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 140 }}
       refreshControl={<RefreshControl refreshing={false} onRefresh={load} tintColor={c.rose} />}>
       <TopBar title="Ma musique" sub="Tout ce que vous avez acheté" />
       {state === "loading" ? <ActivityIndicator color={c.rose} style={{ marginTop: 40 }} /> : null}

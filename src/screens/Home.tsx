@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import { Image, Pressable, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -12,7 +12,7 @@ import { fetchDevices, getToken, type Article } from "../api";
 import { useContent } from "../content";
 import { usePlayer } from "../player";
 import { fanFirstName } from "../fan";
-import { Body, Button, Cover, FitImage, Lightbox, ThemeButton, cardLook, fmtDate, fmtTime, money, openLink } from "../ui";
+import { Body, Button, COL, Cover, FitImage, Lightbox, ThemeButton, cardLook, fmtDate, money, openLink, useColW } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 function BannerVideo({ uri }: { uri: string }) {
@@ -22,8 +22,8 @@ function BannerVideo({ uri }: { uri: string }) {
 
 function NewsCarousel({ items }: { items: Article[] }) {
   const { c } = useTheme();
-  const { width } = useWindowDimensions();
-  const cardW = width - 32;
+  const colW = useColW();
+  const cardW = colW - 32;
   const gap = 14;
   const ref = useRef<{ scrollTo: (o: { x: number; animated?: boolean }) => void } | null>(null);
   const idx = useRef(0);
@@ -121,139 +121,168 @@ export default function Home() {
   const initial = (fan?.name ?? fan?.email ?? "").trim().charAt(0).toUpperCase();
   const cd = nextEvent ? countdown(nextEvent.starts_at) : null;
 
-  const tint = c.dark ? "rgba(221,70,119,.18)" : "#fbe3e8";
-  const softLine = c.dark ? "rgba(255,240,239,.22)" : "#e6cfc9";
+  const colW = useColW();
+  const k = colW / 390;                       // échelle par rapport à la maquette (téléphone de 390 px)
+  const SAND = "#c7ae90";                     // fond de la photo de l'artiste
+  const heroH = 360 * k;
   const accentShadow = c.dark ? {} : { shadowColor: c.rose, shadowOpacity: 0.32, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, elevation: 5 };
-  const Chip = ({ text, color }: { text: string; color: string }) => (
-    <View style={{ position: "absolute", top: 10, left: 10, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: "#ffffff" }}>
-      <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 0.9, textTransform: "uppercase", color }}>{text}</Text>
-    </View>
-  );
+  const quick: { label: string; icon: React.ComponentProps<typeof Ionicons>["name"]; onPress: () => void }[] = [
+    { label: "Ma musique", icon: "musical-notes-outline", onPress: () => goTo("Ma musique") },
+    { label: "Billets", icon: "ticket-outline", onPress: () => (nextEvent?.tickets_enabled ? openTickets(nextEvent) : goTo("Agenda")) },
+    { label: "Agenda", icon: "calendar-outline", onPress: () => goTo("Agenda") },
+    { label: "Clips", icon: "videocam-outline", onPress: () => goTo("Ma musique") },
+  ];
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-    {/* Halo chaud en haut de l'écran */}
-    <LinearGradient pointerEvents="none" colors={[c.dark ? "rgba(221,70,119,.16)" : "rgba(196,44,99,.14)", "rgba(0,0,0,0)"]} style={{ position: "absolute", left: 0, right: 0, top: 0, height: 320 }} />
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 28 }}
-      refreshControl={<RefreshControl refreshing={busy} onRefresh={load} tintColor={c.rose} />}>
-      {/* En-tête : salutation et avatar */}
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <View style={{ flex: 1, paddingRight: 12 }}>
-          <Text style={{ fontFamily: sans, fontSize: 14, color: c.muted }}>{fan ? "Content de vous revoir" : "Viviane Chidid"}</Text>
-          <Text numberOfLines={1} style={{ fontFamily: serif, fontSize: 36, lineHeight: 40, color: c.text, marginTop: 2 }}>{fan ? (fan.name ?? "Bonjour") : "Bienvenue"}</Text>
-        </View>
-        <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
-          <ThemeButton />
-          <Pressable accessibilityRole="button" accessibilityLabel={fan ? "Mon profil" : "Me connecter"} onPress={() => goTo("Profil")}
-            style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: fan ? c.rose : c.card, alignItems: "center", justifyContent: "center" }, fan ? accentShadow : cardLook(c)]}>
-            {fan && initial ? <Text style={{ fontFamily: sansBold, fontSize: 18, color: "#fff" }}>{initial}</Text> : <Ionicons name="person-outline" size={20} color={c.text} />}
-          </Pressable>
-        </View>
-      </View>
-
-      {err && !data ? <Text style={{ fontFamily: sans, color: c.pink, marginTop: 16 }}>{err}</Text> : null}
-
-      {/* Reprendre l'écoute (fan) ou invitation à se connecter (visiteur) */}
-      {last && lastTrack ? (
-        <View style={[{ marginTop: 22, flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 24 }, cardLook(c)]}>
-          <Cover uri={last.album.cover_url} size={64} radius={18} />
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", color: c.gold }}>Reprendre l'écoute</Text>
-            <Text numberOfLines={1} style={{ fontFamily: serif, fontSize: 20, lineHeight: 23, color: c.text, marginTop: 3 }}>{lastTrack.title}</Text>
-            <Text numberOfLines={1} style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 2 }}>{last.album.title} · {fmtTime(last.position)} sur {fmtTime(last.duration)}</Text>
-            <View style={{ marginTop: 8, height: 4, borderRadius: 2, backgroundColor: c.dark ? c.line : "#f1e1dc" }}><View style={{ width: `${pct * 100}%`, height: 4, borderRadius: 2, backgroundColor: c.rose }} /></View>
-          </View>
-          <Pressable accessibilityRole="button" accessibilityLabel="Reprendre la lecture" onPress={() => void p.resume()} style={[{ width: 48, height: 48, borderRadius: 24, backgroundColor: c.rose, alignItems: "center", justifyContent: "center" }, accentShadow]}>
-            <Ionicons name="play" size={20} color="#fff" />
-          </Pressable>
-        </View>
-      ) : !fan ? (
-        <Pressable accessibilityRole="button" onPress={() => goTo("Profil")} style={[{ marginTop: 22, flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 24 }, cardLook(c)]}>
-          <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}><Ionicons name="musical-notes-outline" size={24} color={c.rose} /></View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontFamily: sansBold, fontSize: 15, color: c.text }}>Retrouvez vos achats</Text>
-            <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted, marginTop: 2 }}>Connectez-vous avec votre e-mail pour écouter votre musique.</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={c.muted} />
-        </Pressable>
-      ) : null}
-
-      {showBanner ? (
-        <View style={[{ marginTop: 14, borderRadius: 24, overflow: "hidden" }, cardLook(c)]}>
-          <View style={{ aspectRatio: 16 / 10 }}>
-            {st!.home_media_type === "video" ? <BannerVideo uri={st!.home_media_url!} /> : <Cover uri={st!.home_media_url} size="100%" radius={0} />}
-          </View>
-          {st!.home_title || st!.home_text || (st!.home_button_label && st!.home_button_target !== "none") ? (
-            <View style={{ padding: 16, gap: 8 }}>
-              {st!.home_title ? <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>{st!.home_title}</Text> : null}
-              {st!.home_text ? <Body>{st!.home_text}</Body> : null}
-              {st!.home_button_label && st!.home_button_target !== "none" ? <Button label={st!.home_button_label} onPress={bannerGo} /> : null}
-            </View>
-          ) : null}
-        </View>
-      ) : null}
-
-      {/* Prochain événement : compte à rebours, infos lisibles, bouton d'achat */}
-      {nextEvent && cd ? (
-        <View style={[{ marginTop: 14, padding: 16, borderRadius: 24, gap: 14 }, cardLook(c)]}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-            <View style={{ width: 76, height: 76, borderRadius: 20, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontFamily: serif, fontSize: cd.big.length > 4 ? 20 : 36, lineHeight: cd.big.length > 4 ? 24 : 40, color: c.rose }}>{cd.big}</Text>
-              {cd.small ? <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 1.6, textTransform: "uppercase", color: c.rose }}>{cd.small}</Text> : null}
-            </View>
-            <Pressable accessibilityRole="button" onPress={() => goTo("Agenda")} style={{ flex: 1, gap: 3 }}>
-              <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 1.5, textTransform: "uppercase", color: c.gold }}>Prochain événement</Text>
-              <Text numberOfLines={2} style={{ fontFamily: serif, fontSize: 22, lineHeight: 24, color: c.text }}>{nextEvent.title}</Text>
-              <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{fmtDate(nextEvent.starts_at, true)}</Text>
-              <Text numberOfLines={1} style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{nextEvent.venue}, {nextEvent.city}{nextEvent.ticket_price ? ` · dès ${money(nextEvent.ticket_price, nextEvent.currency)}` : ""}</Text>
-            </Pressable>
-          </View>
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <Pressable accessibilityRole="button" onPress={() => (nextEvent.tickets_enabled ? openTickets(nextEvent) : goTo("Agenda"))}
-              style={[{ flex: 1, height: 50, borderRadius: 25, backgroundColor: c.rose, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }, accentShadow]}>
-              <Ionicons name={nextEvent.tickets_enabled ? "ticket-outline" : "calendar-outline"} size={19} color="#fff" />
-              <Text style={{ fontFamily: sansBold, fontSize: 13, letterSpacing: 1.3, textTransform: "uppercase", color: "#fff" }}>{nextEvent.tickets_enabled ? "Acheter un ticket" : "Voir l'agenda"}</Text>
-            </Pressable>
-            {nextEvent.poster_url ? (
-              <Pressable accessibilityRole="button" onPress={() => setPoster(nextEvent.poster_url)} style={{ height: 50, paddingHorizontal: 18, borderRadius: 25, borderWidth: 1.5, borderColor: softLine, justifyContent: "center" }}>
-                <Text style={{ fontFamily: sansBold, fontSize: 13, color: c.text }}>Affiche</Text>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 150 }}
+      refreshControl={<RefreshControl refreshing={busy} onRefresh={load} tintColor={c.rose} progressViewOffset={insets.top} />}>
+      {/* Bandeau photo : la photo de l'artiste, fondue dans le fond */}
+      <View style={{ backgroundColor: SAND, height: heroH, overflow: "hidden" }}>
+        <View style={[{ height: heroH, overflow: "hidden" }, COL]}>
+          <Image source={require("../../assets/artiste-accueil.jpg")} accessibilityLabel="Viviane Chidid" resizeMode="cover"
+            style={{ position: "absolute", right: -44 * k, top: 6 * k, width: 330 * k, height: 495 * k }} />
+          <View style={{ position: "absolute", left: 0, right: 0, top: 0, paddingTop: insets.top + 12, paddingHorizontal: 20, flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <View style={{ width: 190 * k }}>
+              <Text style={{ fontFamily: sans, fontSize: 14, color: "#361116" }}>{fan ? "Content de vous revoir" : "Viviane Chidid"}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontFamily: serif, fontSize: 44, lineHeight: 46, color: "#2a0611", marginTop: 2 }}>{fan ? (fan.name ?? "Bonjour") : "Bienvenue"}</Text>
+              <Pressable accessibilityRole="button" onPress={() => goTo("Profil")} disabled={Boolean(fan)}
+                style={{ alignSelf: "flex-start", marginTop: 10, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: "rgba(255,255,255,.78)" }}>
+                <Text style={{ fontFamily: sansBold, fontSize: 11, letterSpacing: 1.1, textTransform: "uppercase", color: "#7a1235" }}>{fan ? "Compte fan" : "Se connecter"}</Text>
               </Pressable>
+            </View>
+            <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+              <ThemeButton />
+              <Pressable accessibilityRole="button" accessibilityLabel={fan ? "Mon profil" : "Me connecter"} onPress={() => goTo("Profil")}
+                style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: fan ? c.rose : "#ffffff", alignItems: "center", justifyContent: "center" }, fan ? accentShadow : cardLook(c)]}>
+                {fan && initial ? <Text style={{ fontFamily: sansBold, fontSize: 18, color: "#fff" }}>{initial}</Text> : <Ionicons name="person-outline" size={20} color="#361116" />}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+        <LinearGradient pointerEvents="none" colors={[`${c.bg}00`, c.bg]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 160 * k }} />
+      </View>
+      {/* le dégradé du bandeau doit rejoindre le fond de page sur toute la largeur */}
+      <View style={[{ marginTop: -52 * k, paddingHorizontal: 20 }, COL]}>
+        {err && !data ? <Text style={{ fontFamily: sans, color: c.pink, marginBottom: 10 }}>{err}</Text> : null}
+
+        {/* Mini-lecteur flottant : reprendre l'écoute (ou invitation à se connecter) */}
+        {last && lastTrack ? (
+          <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 10, paddingRight: 12, borderRadius: 26 }, cardLook(c), c.dark ? {} : { shadowOpacity: 0.14, shadowRadius: 15, elevation: 6 }]}>
+            <Cover uri={last.album.cover_url} size={52} radius={16} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 1.4, textTransform: "uppercase", color: c.gold }}>Reprendre l'écoute</Text>
+              <Text numberOfLines={1} style={{ fontFamily: serif, fontSize: 19, lineHeight: 21, color: c.text, marginTop: 1 }}>{lastTrack.title}</Text>
+              <View style={{ marginTop: 6, height: 3, borderRadius: 2, backgroundColor: c.dark ? c.line : "#f1e1dc" }}><View style={{ width: `${pct * 100}%`, height: 3, borderRadius: 2, backgroundColor: c.rose }} /></View>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel="Reprendre la lecture" onPress={() => void p.resume()} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.rose, alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="play" size={18} color="#fff" />
+            </Pressable>
+          </View>
+        ) : !fan ? (
+          <Pressable accessibilityRole="button" onPress={() => goTo("Profil")} style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 26 }, cardLook(c)]}>
+            <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: c.dark ? "rgba(221,70,119,.18)" : "#fbe3e8", alignItems: "center", justifyContent: "center" }}><Ionicons name="musical-notes-outline" size={24} color={c.rose} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontFamily: sansBold, fontSize: 15, color: c.text }}>Retrouvez vos achats</Text>
+              <Text style={{ fontFamily: sans, fontSize: 13, color: c.muted, marginTop: 1 }}>Connectez-vous avec votre e-mail.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={c.muted} />
+          </Pressable>
+        ) : null}
+
+        {/* Accès rapides */}
+        <View style={{ marginTop: 18, flexDirection: "row", justifyContent: "space-between", paddingHorizontal: 4 }}>
+          {quick.map((q) => (
+            <Pressable key={q.label} accessibilityRole="button" accessibilityLabel={q.label} onPress={q.onPress} style={{ width: 78, alignItems: "center", gap: 8 }}>
+              <View style={[{ width: 58, height: 58, borderRadius: 20, backgroundColor: c.card, alignItems: "center", justifyContent: "center" }, cardLook(c)]}>
+                <Ionicons name={q.icon} size={26} color={c.rose} />
+              </View>
+              <Text numberOfLines={1} style={{ fontFamily: sansBold, fontSize: 12, color: c.text }}>{q.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {showBanner ? (
+          <View style={[{ marginTop: 20, borderRadius: 24, overflow: "hidden" }, cardLook(c)]}>
+            <View style={{ aspectRatio: 16 / 10 }}>
+              {st!.home_media_type === "video" ? <BannerVideo uri={st!.home_media_url!} /> : <Cover uri={st!.home_media_url} size="100%" radius={0} />}
+            </View>
+            {st!.home_title || st!.home_text || (st!.home_button_label && st!.home_button_target !== "none") ? (
+              <View style={{ padding: 16, gap: 8 }}>
+                {st!.home_title ? <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>{st!.home_title}</Text> : null}
+                {st!.home_text ? <Body>{st!.home_text}</Body> : null}
+                {st!.home_button_label && st!.home_button_target !== "none" ? <Button label={st!.home_button_label} onPress={bannerGo} /> : null}
+              </View>
             ) : null}
           </View>
-        </View>
-      ) : null}
+        ) : null}
 
-      {/* À découvrir : les deux sorties les plus récentes */}
-      {releases.length ? (
-        <>
-          <View style={{ marginTop: 26, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
-            <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>À découvrir</Text>
-            <Pressable accessibilityRole="button" onPress={() => goTo("Actualités")} hitSlop={12}><Text style={{ fontFamily: sansBold, fontSize: 13, color: c.rose }}>Tout voir</Text></Pressable>
-          </View>
-          <View style={{ flexDirection: "row", gap: 12, marginTop: 14 }}>
-            {releases.map((a, i) => (
-              <Pressable key={a.id} accessibilityRole="button" accessibilityLabel={a.title} onPress={() => openArticle(a)} style={{ flex: 1 }}>
-                <View style={[{ width: "100%", aspectRatio: 1, borderRadius: 22, overflow: "hidden" }, cardLook(c)]}>
-                  <Cover uri={a.cover_url} size="100%" radius={0} />
-                  <Chip text={i === 0 ? "Dernière sortie" : "Nouveauté"} color={i === 0 ? "#c42c63" : "#8a5d0b"} />
+        {/* Prochain événement : un billet bordeaux avec compte à rebours */}
+        {nextEvent && cd ? (
+          <View style={{ marginTop: 20, borderRadius: 26, overflow: "hidden", backgroundColor: "#3a0d1a", shadowColor: "#3a0d1a", shadowOpacity: c.dark ? 0 : 0.28, shadowRadius: 16, shadowOffset: { width: 0, height: 10 }, elevation: 8 }}>
+            <View>
+              <View style={{ flexDirection: "row", alignItems: "stretch" }}>
+                <Pressable accessibilityRole="button" onPress={() => goTo("Agenda")} style={{ flex: 1, paddingTop: 16, paddingBottom: 16, paddingLeft: 18, paddingRight: 12 }}>
+                  <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 1.6, textTransform: "uppercase", color: "#f0c26a" }}>Prochain événement</Text>
+                  <Text numberOfLines={2} style={{ fontFamily: serif, fontSize: 24, lineHeight: 25, color: "#fff0ef", marginTop: 4 }}>{nextEvent.title}</Text>
+                  <Text style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,240,239,.82)", marginTop: 5 }}>{fmtDate(nextEvent.starts_at, true)}</Text>
+                  <Text numberOfLines={1} style={{ fontFamily: sans, fontSize: 13, color: "rgba(255,240,239,.82)" }}>{nextEvent.venue}, {nextEvent.city}{nextEvent.ticket_price ? ` · dès ${money(nextEvent.ticket_price, nextEvent.currency)}` : ""}</Text>
+                </Pressable>
+                {/* perforation */}
+                <View style={{ width: 2, marginVertical: 14, justifyContent: "space-between" }}>
+                  {Array.from({ length: 9 }).map((_, i) => <View key={i} style={{ width: 2, height: 5, borderRadius: 1, backgroundColor: "rgba(255,240,239,.28)" }} />)}
                 </View>
-                <Text numberOfLines={2} style={{ fontFamily: serif, fontSize: 20, lineHeight: 22, color: c.text, marginTop: 10 }}>{a.title}</Text>
-                <Text style={{ fontFamily: sans, fontSize: 12, color: c.muted, marginTop: 2 }}>{fmtDate(a.published_at)}</Text>
+                <View style={{ width: 92, alignItems: "center", justifyContent: "center", paddingVertical: 12 }}>
+                  <Text numberOfLines={1} adjustsFontSizeToFit style={{ fontFamily: serif, fontSize: cd.big.length > 4 ? 22 : 44, lineHeight: cd.big.length > 4 ? 26 : 46, color: "#ff8fb0", maxWidth: 80 }}>{cd.big}</Text>
+                  {cd.small ? <Text style={{ fontFamily: sansBold, fontSize: 10, letterSpacing: 1.8, textTransform: "uppercase", color: "#fff0ef", marginTop: 2 }}>{cd.small}</Text> : null}
+                </View>
+              </View>
+              <View pointerEvents="none" style={{ position: "absolute", right: 82, top: -10, width: 20, height: 20, borderRadius: 10, backgroundColor: c.bg }} />
+              <View pointerEvents="none" style={{ position: "absolute", right: 82, bottom: -10, width: 20, height: 20, borderRadius: 10, backgroundColor: c.bg }} />
+            </View>
+            <View style={{ paddingHorizontal: 14, paddingTop: 12, paddingBottom: 14, flexDirection: "row", gap: 10 }}>
+              <Pressable accessibilityRole="button" onPress={() => (nextEvent.tickets_enabled ? openTickets(nextEvent) : goTo("Agenda"))}
+                style={{ flex: 1, height: 46, borderRadius: 23, backgroundColor: c.rose, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontFamily: sansBold, fontSize: 13, letterSpacing: 1.3, textTransform: "uppercase", color: "#fff" }}>{nextEvent.tickets_enabled ? "Acheter un ticket" : "Voir l'agenda"}</Text>
               </Pressable>
-            ))}
+              {nextEvent.poster_url ? (
+                <Pressable accessibilityRole="button" onPress={() => setPoster(nextEvent.poster_url)} style={{ height: 46, paddingHorizontal: 18, borderRadius: 23, borderWidth: 1.5, borderColor: "rgba(255,240,239,.4)", justifyContent: "center" }}>
+                  <Text style={{ fontFamily: sansBold, fontSize: 13, color: "#fff0ef" }}>Affiche</Text>
+                </Pressable>
+              ) : null}
+            </View>
           </View>
-        </>
-      ) : null}
+        ) : null}
 
-      {news.length ? (
-        <>
-          <View style={{ marginTop: 28, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
-            <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>Actualités</Text>
-            <Pressable accessibilityRole="button" onPress={() => goTo("Actualités")} hitSlop={12}><Text style={{ fontFamily: sansBold, fontSize: 13, color: c.rose }}>Tout voir</Text></Pressable>
-          </View>
-          <NewsCarousel items={news} />
-        </>
-      ) : null}
+        {/* À découvrir : les deux sorties les plus récentes */}
+        {releases.length ? (
+          <>
+            <View style={{ marginTop: 24, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
+              <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>À découvrir</Text>
+              <Pressable accessibilityRole="button" onPress={() => goTo("Actualités")} hitSlop={12}><Text style={{ fontFamily: sansBold, fontSize: 13, color: c.rose }}>Tout voir</Text></Pressable>
+            </View>
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 12 }}>
+              {releases.map((a) => (
+                <Pressable key={a.id} accessibilityRole="button" accessibilityLabel={a.title} onPress={() => openArticle(a)} style={[{ flex: 1, aspectRatio: 1, borderRadius: 22, overflow: "hidden" }, cardLook(c)]}>
+                  <Cover uri={a.cover_url} size="100%" radius={0} />
+                  <LinearGradient pointerEvents="none" colors={["rgba(25,1,4,0)", "rgba(25,1,4,.72)"]} style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: "55%" }} />
+                  <Text numberOfLines={2} style={{ position: "absolute", left: 12, right: 12, bottom: 12, fontFamily: serif, fontSize: 20, lineHeight: 21, color: "#fff" }}>{a.title}</Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : null}
+
+        {news.length ? (
+          <>
+            <View style={{ marginTop: 28, flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
+              <Text style={{ fontFamily: serif, fontSize: 24, color: c.text }}>Actualités</Text>
+              <Pressable accessibilityRole="button" onPress={() => goTo("Actualités")} hitSlop={12}><Text style={{ fontFamily: sansBold, fontSize: 13, color: c.rose }}>Tout voir</Text></Pressable>
+            </View>
+            <NewsCarousel items={news} />
+          </>
+        ) : null}
+      </View>
       <Lightbox photos={poster ? [poster] : []} start={poster ? 0 : null} onClose={() => setPoster(null)} />
     </ScrollView>
     </View>

@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-nati
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { fetchEventSale, placeTicketOrder, type EventSale, type PayMethod, type Placed } from "../api";
 import PayFlow from "./PayFlow";
-import { BackBar, Banner, Body, Button, Cover, Field, PayPicker, cardLook, fmtDate, money, validEmail } from "../ui";
+import { BackBar, Banner, Body, Button, Cover, Field, PayPicker, cardLook, fmtDate, money, validEmail, COL } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export default function Ticket({ route, navigation }: { route: { params: { id: string } }; navigation: { goBack: () => void } }) {
@@ -42,7 +42,7 @@ export default function Ticket({ route, navigation }: { route: { params: { id: s
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <ScrollView contentContainerStyle={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 140, gap: 14 }} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={{ ...COL, paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 140, gap: 14 }} keyboardShouldPersistTaps="handled">
         <BackBar onBack={navigation.goBack} label="Billetterie" />
         {!sale && !err ? <ActivityIndicator color={c.rose} style={{ marginTop: 30 }} /> : null}
         {err && !sale ? <Banner text={err} /> : null}

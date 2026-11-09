@@ -6,7 +6,7 @@ import type { LibAlbum } from "../api";
 import { go, ui } from "../nav";
 import { useSecureScreen } from "../secure";
 import { usePlayer } from "../player";
-import { BackBar, Banner, Body, Button, NaturalImage, fmtDate } from "../ui";
+import { BackBar, Banner, Body, Button, NaturalImage, fmtDate, COL } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 /** Dossier d'un album ou single acheté : pochette, puis tracklist. */
@@ -23,7 +23,7 @@ export default function Collection({ route, navigation }: { route: { params: { a
   const start = async (i: number) => { await p.play(a, i); ui.openPlayer(); };
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ paddingBottom: 48 }}>
+    <ScrollView style={{ flex: 1, backgroundColor: c.bg }} contentContainerStyle={{ ...COL, paddingBottom: 48 }}>
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, paddingBottom: 10 }}><BackBar onBack={navigation.goBack} label="Ma musique" /></View>
       <NaturalImage uri={a.cover_url} min={0.7} max={1.2} />
       <View style={{ paddingHorizontal: 22, paddingTop: 22 }}>

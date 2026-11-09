@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, fetchDevices, getToken, logout, removeDevice, type DeviceOrder } from "../api";
 import { AccountLogin } from "./Login";
 import { fanFirstName } from "../fan";
-import { Banner, Body, Button, Page, TopBar, cardLook, tintOf } from "../ui";
+import { Banner, Body, Button, Page, TopBar, cardLook, tintOf, COL } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
 export default function Profile() {
@@ -36,7 +36,7 @@ export default function Profile() {
 
   return (
     <Page>
-    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 130, gap: 14 }}>
+    <ScrollView style={{ flex: 1 }} contentContainerStyle={{ ...COL, paddingTop: insets.top + 12, paddingHorizontal: 20, paddingBottom: 130, gap: 14 }}>
       <TopBar title="Profil" sub="Votre compte fan" />
       {err ? <Banner text={err} /> : null}
       {logged === false ? <AccountLogin onDone={load} /> : null}
