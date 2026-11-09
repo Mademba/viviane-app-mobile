@@ -11,6 +11,7 @@ import { openArticle, openTickets } from "./Feed";
 import { fetchDevices, getToken, type Article } from "../api";
 import { useContent } from "../content";
 import { usePlayer } from "../player";
+import { fanFirstName } from "../fan";
 import { Body, Button, Cover, FitImage, Lightbox, ThemeButton, cardLook, fmtDate, fmtTime, money, openLink } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
@@ -100,7 +101,7 @@ export default function Home() {
       if (!(await getToken())) { if (live) setFan(null); return; }
       try {
         const o = (await fetchDevices())[0];
-        if (live) setFan(o?.email ? { email: o.email, name: o.name ?? null } : null);
+        if (live) setFan(o?.email ? { email: o.email, name: fanFirstName(o.name, o.email) } : null);
       } catch { if (live) setFan(null); }
     })();
     return () => { live = false; };

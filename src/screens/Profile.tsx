@@ -8,6 +8,7 @@ import { API_URL } from "../config";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AuthError, fetchDevices, getToken, logout, removeDevice, type DeviceOrder } from "../api";
 import { AccountLogin } from "./Login";
+import { fanFirstName } from "../fan";
 import { Banner, Body, Button, Page, TopBar, cardLook, tintOf } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
@@ -40,7 +41,8 @@ export default function Profile() {
       {err ? <Banner text={err} /> : null}
       {logged === false ? <AccountLogin onDone={load} /> : null}
       {logged ? orders.map((o) => {
-        const first = (o.name ?? o.email ?? "?").trim().charAt(0).toUpperCase();
+        const shown = fanFirstName(o.name, o.email);
+        const first = (shown ?? o.email ?? "?").trim().charAt(0).toUpperCase();
         return (
           <React.Fragment key={o.order_id ?? "compte"}>
             <View style={[{ borderRadius: 26, padding: 18, gap: 16 }, cardLook(c)]}>
@@ -49,7 +51,7 @@ export default function Profile() {
                   <Text style={{ fontFamily: sansBold, fontSize: 24, color: c.onRose }}>{first}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text numberOfLines={1} style={{ fontFamily: serif, fontSize: 24, color: c.text }}>{o.name ?? o.title}</Text>
+                  <Text numberOfLines={1} style={{ fontFamily: serif, fontSize: 24, color: c.text }}>{shown ?? o.title}</Text>
                   {o.email ? <Text numberOfLines={1} style={{ fontFamily: sans, fontSize: 13, color: c.muted }}>{o.email}</Text> : null}
                 </View>
               </View>
