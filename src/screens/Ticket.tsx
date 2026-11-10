@@ -5,6 +5,7 @@ import { fetchEventSale, placeTicketOrder, type EventSale, type PayMethod, type 
 import PayFlow from "./PayFlow";
 import { BackBar, Banner, Body, Button, Cover, Field, PayPicker, cardLook, fmtDate, money, validEmail, COL } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
+import { cleanName, cleanPhone, nameError, phoneError } from "../identity";
 
 export default function Ticket({ route, navigation }: { route: { params: { id: string } }; navigation: { goBack: () => void } }) {
   const { c } = useTheme();
@@ -30,12 +31,13 @@ export default function Ticket({ route, navigation }: { route: { params: { id: s
     if (!sale) return;
     if (count < 1) return setErr("Choisissez au moins un ticket.");
     if (count > 5) return setErr("5 tickets maximum par personne.");
-    if (name.trim().length < 2) return setErr("Entrez votre nom complet.");
+    const ne = nameError(name); if (ne) return setErr(ne);
+    const pe = phoneError(phone, false); if (pe) return setErr(pe);
     if (!validEmail(email)) return setErr("Entrez une adresse e-mail valide : vos tickets y seront envoyés.");
     setBusy(true);
     try {
       const items = types.filter((t) => (qty[t.id] ?? 0) > 0).map((t) => ({ ticketTypeId: t.id, quantity: qty[t.id]! }));
-      setPlaced(await placeTicketOrder({ eventId: sale.event.id, items, name: name.trim(), email: email.trim(), phone: phone.trim() || undefined, paymentMethod: method }));
+      setPlaced(await placeTicketOrder({ eventId: sale.event.id, items, name: cleanName(name), email: email.trim(), phone: phone.trim() ? cleanPhone(phone) ?? undefined : undefined, paymentMethod: method }));
     } catch (e) { setErr(e instanceof Error ? e.message : "Erreur"); }
     setBusy(false);
   };

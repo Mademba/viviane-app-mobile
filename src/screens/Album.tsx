@@ -8,6 +8,7 @@ import PayFlow from "./PayFlow";
 import VideoPreview from "../VideoPreview";
 import { BackBar, Banner, Body, Button, Field, NaturalImage, PayPicker, fmtDate, money, validEmail, COL } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
+import { cleanName, cleanPhone, nameError, phoneError } from "../identity";
 
 export default function Album({ route, navigation }: { route: { params: { id: string } }; navigation: { goBack: () => void } }) {
   const { c } = useTheme();
@@ -57,13 +58,14 @@ export default function Album({ route, navigation }: { route: { params: { id: st
   const buy = async () => {
     setErr(null);
     if (!sale) return;
-    if (name.trim().length < 2) return setErr("Entrez votre nom complet.");
+    const ne = nameError(name); if (ne) return setErr(ne);
+    const pe = phoneError(phone, true); if (pe) return setErr(pe);
     if (!validEmail(email)) return setErr("Entrez une adresse e-mail valide.");
     if (mode === "delivery" && (address.trim().length < 3 || city.trim().length < 2)) return setErr("Entrez l'adresse et la ville de livraison.");
     setBusy(true);
     try {
       player.current?.pause(); setPlaying(null);
-      setPlaced(await placeAlbumOrder({ articleId: sale.item.id, mode, quantity: q, name: name.trim(), email: email.trim(), phone: phone.trim() || undefined, paymentMethod: mode === "digital" || payNow ? method : undefined, address: mode === "delivery" ? address.trim() : undefined, city: mode === "delivery" ? city.trim() : undefined }));
+      setPlaced(await placeAlbumOrder({ articleId: sale.item.id, mode, quantity: q, name: cleanName(name), email: email.trim(), phone: cleanPhone(phone) ?? undefined, paymentMethod: mode === "digital" || payNow ? method : undefined, address: mode === "delivery" ? address.trim() : undefined, city: mode === "delivery" ? city.trim() : undefined }));
     } catch (e) { setErr(e instanceof Error ? e.message : "Erreur"); }
     setBusy(false);
   };
@@ -135,7 +137,7 @@ export default function Album({ route, navigation }: { route: { params: { id: st
                   ) : null}
                   <Field label="Nom complet" value={name} onChange={setName} />
                   <Field label="Adresse e-mail" value={email} onChange={setEmail} keyboard="email-address" />
-                  <Field label="Téléphone" value={phone} onChange={setPhone} keyboard="phone-pad" />
+                  <Field label="Téléphone (ex. 77 123 45 67)" value={phone} onChange={setPhone} keyboard="phone-pad" />
                   {mode === "delivery" ? (<><Field label="Adresse de livraison" value={address} onChange={setAddress} /><Field label="Ville" value={city} onChange={setCity} /><Format on={payNow} onPress={() => setPayNow(true)} title="Payer maintenant" sub="En ligne, puis livraison" price="" /><Format on={!payNow} onPress={() => setPayNow(false)} title="Payer à la livraison" sub="En espèces à la remise" price="" />{payNow ? <PayPicker value={method} onChange={setMethod} /> : null}</>) : <PayPicker value={method} onChange={setMethod} />}
                 </>
               ) : null}
