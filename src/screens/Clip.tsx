@@ -101,7 +101,7 @@ function Video({ src, wm, full, onFull }: { src: Src; wm: string; full: boolean;
     <View ref={box as never} style={[{ backgroundColor: "#000" }, full && !isWeb ? { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 50 } : { width: "100%", aspectRatio: 16 / 9 }]}>
       <VideoView player={player} nativeControls={false} fullscreenOptions={{ enable: false }} contentFit="contain" style={{ width: "100%", height: "100%" }} />
       <Pressable onPress={() => setBar((v) => !v)} accessibilityLabel="Afficher ou masquer les contrôles" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
-      <Watermark text={wm} />
+      <Watermark marks={2} text={wm} opacity={0.2} />
       {controls}
       {/* Bouton de sortie du plein écran : toujours visible, en haut à gauche */}
       {isFull ? (

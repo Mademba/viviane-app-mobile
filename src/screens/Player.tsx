@@ -104,7 +104,7 @@ export default function Player({ onClose }: { onClose: () => void }) {
           </View>
         ) : null}
       </ScrollView>
-      <Watermark text={wmText(album?.fan)} opacity={0.1} />
+      <Watermark marks={2} text={wmText(album?.fan)} opacity={0.2} />
     </View>
   );
 }
