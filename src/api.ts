@@ -170,3 +170,9 @@ export const trackSource = async (trackId: string) => ({
   uri: `${API_URL}/api/app/track/${trackId}`,
   headers: { authorization: `Bearer ${await getToken()}` },
 });
+
+/** Notifications de la veille (équipe) : ce compte est-il destinataire ? */
+export const pushEligible = () => call<{ eligible: boolean }>("/api/app/push-register").then((r) => r.eligible);
+/** Enregistre ce téléphone pour recevoir les alertes de la veille. */
+export const registerPushToken = (token: string, platform: string) =>
+  call<{ eligible: boolean }>("/api/app/push-register", { method: "POST", body: JSON.stringify({ token, platform }) });

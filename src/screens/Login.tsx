@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { ApiError, requestLoginCode, verifyLoginCode } from "../api";
+import { registerTeamPush } from "../push";
 import { Banner, Body, Button, Field, validEmail } from "../ui";
 import { sans, sansBold, serif, useTheme } from "../theme";
 
@@ -36,7 +37,7 @@ export function AccountLogin({ onDone }: { onDone: () => void }) {
   const verify = async (replace = false) => {
     setErr(null); setInfo(null);
     setBusy(true);
-    try { await verifyLoginCode(email, code, replace); onDone(); }
+    try { await verifyLoginCode(email, code, replace); void registerTeamPush(); onDone(); }
     catch (e) {
       if (e instanceof ApiError && e.code === "device_limit") { setOther(String(e.data?.other_name ?? "un autre appareil")); setStep("replace"); }
       else {

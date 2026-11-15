@@ -11,6 +11,7 @@ import { cardLook, useSide } from "./src/ui";
 import { ThemeProvider, useTheme, sans, sansBold } from "./src/theme";
 import { PlayerProvider, usePlayer } from "./src/player";
 import { guard } from "./src/session";
+import { listenPushTaps, registerTeamPush } from "./src/push";
 import { ContentProvider } from "./src/content";
 import Welcome from "./src/screens/Welcome";
 import Music from "./src/screens/Music";
@@ -55,6 +56,10 @@ function Main() {
   const side = useSide();
   const [full, setFull] = useState(false);
   ui.openPlayer = () => setFull(true);
+  useEffect(() => {
+    void registerTeamPush();
+    return listenPushTaps();
+  }, []);
   useEffect(() => {
     if (!full) return;
     const sub = BackHandler.addEventListener("hardwareBackPress", () => { setFull(false); return true; });
